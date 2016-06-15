@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.19.0 -->
+<interface>
+  <requires lib="gtk+" version="3.16"/>
+  <object class="GtkWindow" id="window1">
+    <property name="can_focus">False</property>
+    <signal name="delete-event" handler="onDeleteKeyPresentWindw" swapped="no"/>
+    <child>
+      <object class="GtkBox" id="box1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkHeaderBar" id="headerbar1">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="valign">center</property>
+            <property name="title">Presenting Key for Signing</property>
+            <property name="has_subtitle">False</property>
+            <property name="show_close_button">True</property>
+            <child>
+              <placeholder/>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="label1">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="margin_bottom">22</property>
+            <property name="label" translatable="yes">&lt;small&gt;To have the key signed, the other person must enter the security code, or scan the QR code&lt;/small&gt;</property>
+            <property name="use_markup">True</property>
+            <property name="ellipsize">middle</property>
+            <property name="lines">2</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="padding">6</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
