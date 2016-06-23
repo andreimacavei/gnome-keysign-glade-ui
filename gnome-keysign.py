@@ -66,6 +66,13 @@ class Handler:
         keyPresentWindow = args[0]
         keyPresentWindow.close()
 
+    def onDeleteKeyConfirmWindow(self, *args):
+        keyConfirmWindow = args[0]
+        keyConfirmWindow.close()
+
+    def onDeleteInvalidDialog(self, *args):
+        pass
+
     def onListRowActivated(self, widget, row, *args):
         print "ListRow activated!Key '{}'' selected".format(row.keyid)
 
@@ -74,6 +81,17 @@ class Handler:
 
     def onListRowSelected(self, widget, row, *args):
         print "ListRow selected!Key '{}'' selected".format(row.keyid)
+
+    def onTextChanged(self, widget):
+        print "Gtk.Entry text changed: {}".format(widget.get_text())
+        for key,val in data.items():
+            if val['fpr'] == widget.get_text():
+                keyConfirmWindow = KeyConfirmWindow(key)
+                keyConfirmWindow.show_confirm_window()
+
+
+# TODO split the signal handlers into different classes
+global_handler = Handler()
 
 
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
@@ -96,7 +114,7 @@ class KeysignApp:
         self.builder = Gtk.Builder()
         self.builder.add_from_file("MainWindow.glade")
         # self.builder.add_from_file("MainWindowNotebook.glade")
-        self.builder.connect_signals(Handler())
+        self.builder.connect_signals(global_handler)
 
         self.app = self.builder.get_object("applicationwindow1")
         self.data = data
@@ -117,7 +135,7 @@ class KeyPresentWindow:
     def __init__(self, keyid):
         self.builder = Gtk.Builder()
         self.builder.add_from_file("KeyPresentWindow.glade")
-        self.builder.connect_signals(Handler())
+        self.builder.connect_signals(global_handler)
 
         self.window = self.builder.get_object("window1")
         self.key = data[keyid]
@@ -131,6 +149,33 @@ class KeyPresentWindow:
         keyFingerprintLabel.set_markup(fpr)
 
         self.window.show_all()
+
+
+class KeyConfirmWindow:
+
+    def __init__(self, keyid):
+        self.builder = Gtk.Builder()
+        self.builder.add_from_file("KeyConfirmWindow.glade")
+        self.builder.connect_signals(global_handler)
+
+        self.confirm_window = self.builder.get_object("confirm_window")
+        self.invalid_dialog = self.builder.get_object("invalid_dialog")
+        self.key = data[keyid]
+
+    def show_confirm_window(self):
+        keyIdsLabel = self.builder.get_object("key_ids_label")
+        keyIdsLabel.set_markup(self.key['id'])
+
+        uidsLabel = self.builder.get_object("uids_label")
+        markup = ""
+        for uid in self.key['uids']:
+            markup += uid['uid'] + "\n"
+        uidsLabel.set_markup(markup)
+
+        self.confirm_window.show_all()
+
+    def show_invalid_dialog(self):
+        pass
 
 
 def main():
