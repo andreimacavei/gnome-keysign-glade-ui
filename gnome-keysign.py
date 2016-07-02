@@ -1,12 +1,18 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import signal
 import sys
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GLib, Gio
 
+from gi.repository import (
+    GLib,
+    GObject,
+    Gio,
+    Gtk
+)
 
 data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
@@ -74,16 +80,16 @@ class Handler:
         pass
 
     def onListRowActivated(self, widget, row, *args):
-        print "ListRow activated!Key '{}'' selected".format(row.keyid)
+        print ("ListRow activated!Key '{}'' selected".format(row.keyid))
 
         keyPresentWindow = KeyPresentWindow(row.keyid)
         keyPresentWindow.show()
 
     def onListRowSelected(self, widget, row, *args):
-        print "ListRow selected!Key '{}'' selected".format(row.keyid)
+        print ("ListRow selected!Key '{}'' selected".format(row.keyid))
 
     def onTextChanged(self, widget):
-        print "Gtk.Entry text changed: {}".format(widget.get_text())
+        print ("Gtk.Entry text changed: {}".format(widget.get_text()))
         for key,val in data.items():
             if val['fpr'] == widget.get_text():
                 keyConfirmWindow = KeyConfirmWindow(key)
@@ -106,28 +112,72 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
         self.add(label)
 
 
+class ApplicationWindow(Gtk.ApplicationWindow):
 
-class KeysignApp:
+    def __init__(self, *args, **kwargs):
+        Gtk.Application.__init__(self,*args, **kwargs)
 
-    def __init__(self):
-
-        self.builder = Gtk.Builder()
-        self.builder.add_from_file("MainWindow.glade")
-        # self.builder.add_from_file("MainWindowNotebook.glade")
+        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
         self.builder.connect_signals(global_handler)
+        self.window = self.builder.get_object("applicationwindow1")
 
-        self.app = self.builder.get_object("applicationwindow1")
-        self.data = data
+        self._init_actions()
 
-
-    def show(self):
-        # notebook = self.builder.get_object("notebook1")
         listBox = self.builder.get_object('listbox1')
-
         for key,val in data.items():
             listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
 
-        self.app.show_all()
+        #FIXME I don't know where this should be moved
+        self.window.show_all()
+
+    def _init_actions(self):
+        pass
+
+
+class Application(Gtk.Application):
+
+    version = GObject.Property(type=str, flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
+
+    def __init__(self):
+        Gtk.Application.__init__(
+            self, application_id="org.gnome.keysign")
+
+        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
+
+        self.window = None
+
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+
+        action = Gio.SimpleAction.new('quit', None)
+        action.connect('activate', lambda action, param: self.quit())
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new('about', None)
+        action.connect('activate', self.on_about)
+        self.add_action(action)
+
+    def do_activate(self):
+        # FIXME Here http://python-gtk-3-tutorial.readthedocs.io/en/latest/application.html#example
+        # they use window.present() , but they also do only label.show() inside the ApplicationWindow's
+        # init method
+        self.window = ApplicationWindow(application=self)
+
+
+    def do_shutdown(self):
+        Gtk.Application.do_shutdown(self)
+
+    def on_about(self, action, param):
+        about_dialog = Gtk.AboutDialog(transient_for=self.window, modal=True,
+                                       license_type=Gtk.License.GPL_3_0,
+                                       authors=['Andrei Macavei', ],
+                                       copyright='Copyright © 2016 Andrei Macavei',
+                                       logo_icon_name=None,
+                                       version=self.version)
+        about_dialog.present()
+
+    def on_quit(self, app, param=None):
+        self.quit()
 
 
 class KeyPresentWindow:
@@ -179,10 +229,15 @@ class KeyConfirmWindow:
 
 
 def main():
-    keysignApp = KeysignApp()
-    keysignApp.show()
+    app = Application()
 
-    Gtk.main()
+    try:
+        GLib.unix_signal_add_full(GLib.PRIORITY_HIGH, signal.SIGINT, lambda *args : app.quit(), None)
+    except AttributeError:
+        pass
+
+    exit_status = app.run(None)
+    return exit_status
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
