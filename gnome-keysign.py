@@ -142,7 +142,7 @@ class Application(Gtk.Application):
 
     def __init__(self):
         Gtk.Application.__init__(
-            self, application_id="org.gnome.keysign")
+            self, application_id=None) #org.gnome.keysign
 
         self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
 
