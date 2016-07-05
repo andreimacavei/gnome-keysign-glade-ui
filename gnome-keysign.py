@@ -114,12 +114,15 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
 class ApplicationWindow(Gtk.ApplicationWindow):
 
-    def __init__(self, *args, **kwargs):
-        Gtk.Application.__init__(self,*args, **kwargs)
+    def __init__(self, application, *args, **kwargs):
+        Gtk.Application.__init__(self, application=application, *args, **kwargs)
 
+        app = application
         self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
         self.builder.connect_signals(global_handler)
         self.window = self.builder.get_object("applicationwindow1")
+        self.window.connect('destroy', app.on_quit)
+        self.app = app
 
         self._init_actions()
 
@@ -127,7 +130,6 @@ class ApplicationWindow(Gtk.ApplicationWindow):
         for key,val in data.items():
             listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
 
-        #FIXME I don't know where this should be moved
         self.window.show_all()
 
     def _init_actions(self):
