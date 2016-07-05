@@ -159,6 +159,9 @@ class Application(Gtk.Application):
         action.connect('activate', self.on_about)
         self.add_action(action)
 
+        builder = Gtk.Builder.new_from_file("menus.ui")
+        self.set_app_menu(builder.get_object("app-menu"))
+
     def do_activate(self):
         # FIXME Here http://python-gtk-3-tutorial.readthedocs.io/en/latest/application.html#example
         # they use window.present() , but they also do only label.show() inside the ApplicationWindow's
