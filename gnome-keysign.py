@@ -79,18 +79,6 @@ class Handler:
     def onDeleteInvalidDialog(self, *args):
         pass
 
-    def onListRowActivated(self, widget, row, *args):
-        print ("ListRow activated!Key '{}'' selected".format(row.keyid))
-
-        keyPresentPage = KeyPresentPage(row.keyid)
-
-        notebook = widget.get_parent()
-        notebook.next_page()
-
-
-    def onListRowSelected(self, widget, row, *args):
-        print ("ListRow selected!Key '{}'' selected".format(row.keyid))
-
     def onTextChanged(self, widget):
         print ("Gtk.Entry text changed: {}".format(widget.get_text()))
         for key,val in data.items():
@@ -101,7 +89,6 @@ class Handler:
 
 # TODO split the signal handlers into different classes
 global_handler = Handler()
-
 
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
@@ -117,33 +104,29 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
 class KeyPresentPage:
 
-    def __init__(self, keyid):
-        builder = Gtk.Builder()
-        builder.add_objects_from_file("MainWindow.glade", ("notebook1",))
-        builder.connect_signals(global_handler)
+    def __init__(self, keyid, builder):
+        self.builder = builder
 
         key = data[keyid]
 
-        self.keyDetailsLabel = builder.get_object("keyDetailsLabel")
+        self.keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
         self.keyDetailsLabel.set_markup(formatDetailsKeydata(key))
 
         fpr = "<b>{}</b>".format(key['fpr'])
-        self.keyFingerprintLabel = builder.get_object("keyFingerprintLabel")
+        self.keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
         self.keyFingerprintLabel.set_markup(fpr)
-
-        self.box = builder.get_object('box3')
-        self.box.show_all()
 
 
 
 class ApplicationWindow(Gtk.ApplicationWindow):
 
-    def __init__(self, application, *args, **kwargs):
+    def __init__(self, builder, application, *args, **kwargs):
         Gtk.Application.__init__(self, application=application, *args, **kwargs)
 
         app = application
-        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
-        self.builder.connect_signals(global_handler)
+        # self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
+
+        self.builder = builder
         self.window = self.builder.get_object("applicationwindow1")
         self.window.connect('destroy', app.on_quit)
         self.app = app
@@ -154,17 +137,23 @@ class ApplicationWindow(Gtk.ApplicationWindow):
         for key,val in data.items():
             listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
 
-
-        box = self.builder.get_object('box3')
-        keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
-        dummy_data = "DUMMY DATA IS DUMMY"
-        keyDetailsLabel.set_markup(dummy_data)
-
+        listBox.connect('row-activated', self.on_row_activated, self.builder)
+        listBox.connect('row-selected', self.on_row_selected, self.builder)
         self.window.show_all()
 
+    def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
+
+        keyPresentPage = KeyPresentPage(listBoxRowObject.keyid, builder)
+
+        notebook = listBoxObject.get_parent()
+        notebook.next_page()
+
+    def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
+        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
 
     def _init_actions(self):
         pass
+
 
 
 class Application(Gtk.Application):
@@ -176,7 +165,7 @@ class Application(Gtk.Application):
             self, application_id=None) #org.gnome.keysign
 
         self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
-
+        self.builder.connect_signals(global_handler)
         self.window = None
 
     def do_startup(self):
@@ -197,7 +186,7 @@ class Application(Gtk.Application):
         # FIXME Here http://python-gtk-3-tutorial.readthedocs.io/en/latest/application.html#example
         # they use window.present() , but they also do only label.show() inside the ApplicationWindow's
         # init method
-        self.window = ApplicationWindow(application=self)
+        self.window = ApplicationWindow(self.builder, application=self)
 
 
     def do_shutdown(self):

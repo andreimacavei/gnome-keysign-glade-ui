@@ -58,8 +58,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="activate_on_single_click">False</property>
-                    <signal name="row-activated" handler="onListRowActivated" swapped="no"/>
-                    <signal name="row-selected" handler="onListRowSelected" swapped="no"/>
                   </object>
                 </child>
                 <child type="tab">
