@@ -83,7 +83,6 @@ class Handler:
         print ("ListRow activated!Key '{}'' selected".format(row.keyid))
 
         keyPresentPage = KeyPresentPage(row.keyid)
-        keyPresentPage.show()
 
         notebook = widget.get_parent()
         notebook.next_page()
@@ -120,7 +119,7 @@ class KeyPresentPage:
 
     def __init__(self, keyid):
         builder = Gtk.Builder()
-        builder.add_objects_from_file("MainWindowNotebook.glade", ("notebook1",))
+        builder.add_objects_from_file("MainWindow.glade", ("notebook1",))
         builder.connect_signals(global_handler)
 
         key = data[keyid]
@@ -132,9 +131,9 @@ class KeyPresentPage:
         self.keyFingerprintLabel = builder.get_object("keyFingerprintLabel")
         self.keyFingerprintLabel.set_markup(fpr)
 
-    def show(self):
-        self.keyDetailsLabel.show()
-        self.keyFingerprintLabel.show()
+        self.box = builder.get_object('box3')
+        self.box.show_all()
+
 
 
 class ApplicationWindow(Gtk.ApplicationWindow):
@@ -143,7 +142,7 @@ class ApplicationWindow(Gtk.ApplicationWindow):
         Gtk.Application.__init__(self, application=application, *args, **kwargs)
 
         app = application
-        self.builder = Gtk.Builder.new_from_file("MainWindowNotebook.glade")
+        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
         self.builder.connect_signals(global_handler)
         self.window = self.builder.get_object("applicationwindow1")
         self.window.connect('destroy', app.on_quit)
@@ -155,7 +154,14 @@ class ApplicationWindow(Gtk.ApplicationWindow):
         for key,val in data.items():
             listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
 
+
+        box = self.builder.get_object('box3')
+        keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
+        dummy_data = "DUMMY DATA IS DUMMY"
+        keyDetailsLabel.set_markup(dummy_data)
+
         self.window.show_all()
+
 
     def _init_actions(self):
         pass
@@ -169,7 +175,7 @@ class Application(Gtk.Application):
         Gtk.Application.__init__(
             self, application_id=None) #org.gnome.keysign
 
-        self.builder = Gtk.Builder.new_from_file("MainWindowNotebook.glade")
+        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
 
         self.window = None
 
