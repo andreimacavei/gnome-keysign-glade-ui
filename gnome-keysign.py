@@ -68,10 +68,6 @@ class Handler:
     def onDeleteWindow(self, *args):
         Gtk.main_quit(*args)
 
-    def onDeleteKeyPresentWindow(self, *args):
-        keyPresentWindow = args[0]
-        keyPresentWindow.close()
-
     def onDeleteKeyConfirmWindow(self, *args):
         keyConfirmWindow = args[0]
         keyConfirmWindow.close()
@@ -79,13 +75,13 @@ class Handler:
     def onDeleteInvalidDialog(self, *args):
         pass
 
-    def onTextChanged(self, widget):
-        print ("Gtk.Entry text changed: {}".format(widget.get_text()))
+    def onTextChanged(self, entryWidget, *args):
+        print ("Gtk.Entry text changed: {}".format(entryWidget.get_text()))
         for key,val in data.items():
-            if val['fpr'] == widget.get_text():
+            if val['fpr'] == entryWidget.get_text():
                 keyConfirmWindow = KeyConfirmWindow(key)
                 keyConfirmWindow.show_confirm_window()
-
+                break
 
 # TODO split the signal handlers into different classes
 global_handler = Handler()

@@ -317,6 +317,7 @@
                   <object class="GtkEntry" id="entry1">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <signal name="changed" handler="onTextChanged" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">False</property>
