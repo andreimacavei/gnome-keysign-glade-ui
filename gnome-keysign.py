@@ -90,41 +90,6 @@ class KeyPresentPage:
         self.keyFingerprintLabel.set_markup(fpr)
 
 
-class ApplicationWindow(Gtk.ApplicationWindow):
-
-    def __init__(self, builder, application, *args, **kwargs):
-        Gtk.Application.__init__(self, application=application, *args, **kwargs)
-
-        app = application
-        self.builder = builder
-        self.builder.connect_signals(self)
-
-        self.window = self.builder.get_object("applicationwindow1")
-        self.window.connect('destroy', app.on_quit)
-        self.app = app
-
-        self._init_actions()
-
-        listBox = self.builder.get_object('listbox1')
-        for key,val in data.items():
-            listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
-
-        listBox.connect('row-activated', self.on_row_activated, self.builder)
-        listBox.connect('row-selected', self.on_row_selected, self.builder)
-        self.window.show_all()
-
-    def _init_actions(self):
-        pass
-
-    def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-        keyPresentPage = KeyPresentPage(listBoxRowObject.keyid, builder)
-        notebook = listBoxObject.get_parent()
-        notebook.next_page()
-
-    def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
-        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
-
-
 class Application(Gtk.Application):
 
     version = GObject.Property(type=str, flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
@@ -140,22 +105,34 @@ class Application(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
 
+        # Update the key list with the user's own keys
+        listBox = self.builder.get_object('listbox1')
+        for key,val in data.items():
+            listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
+
+        listBox.connect('row-activated', self.on_row_activated, self.builder)
+        listBox.connect('row-selected', self.on_row_selected, self.builder)
+
+        # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
         action.connect('activate', lambda action, param: self.quit())
         self.add_action(action)
 
+        # Create menu action 'about'
         action = Gio.SimpleAction.new('about', None)
         action.connect('activate', self.on_about)
         self.add_action(action)
 
+        # Set up app menu
         builder = Gtk.Builder.new_from_file("menus.ui")
         self.set_app_menu(builder.get_object("app-menu"))
 
+
     def do_activate(self):
-        # FIXME Here http://python-gtk-3-tutorial.readthedocs.io/en/latest/application.html#example
-        # they use window.present() , but they also do only label.show() inside the ApplicationWindow's
-        # init method
-        self.window = ApplicationWindow(self.builder, application=self)
+        # Set up the app window
+        self.window = self.builder.get_object("applicationwindow1")
+        self.add_window(self.window)
+        self.window.show_all()
 
     def on_text_changed(self, entryObject, *args):
         print ("Gtk.Entry text changed: {}".format(entryObject.get_text()))
@@ -164,6 +141,14 @@ class Application(Gtk.Application):
                 keyConfirmWindow = KeyConfirmWindow(key)
                 keyConfirmWindow.show_confirm_window()
                 break
+
+    def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
+        keyPresentPage = KeyPresentPage(listBoxRowObject.keyid, builder)
+        notebook = listBoxObject.get_parent()
+        notebook.next_page()
+
+    def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
+        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
