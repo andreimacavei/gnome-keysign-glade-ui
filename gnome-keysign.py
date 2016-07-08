@@ -113,6 +113,7 @@ class Application(Gtk.Application):
         listBox.connect('row-activated', self.on_row_activated, self.builder)
         listBox.connect('row-selected', self.on_row_selected, self.builder)
 
+        self.headerBar = self.builder.get_object('headerbar1')
         # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
         action.connect('activate', lambda action, param: self.quit())
@@ -131,6 +132,8 @@ class Application(Gtk.Application):
     def do_activate(self):
         # Set up the app window
         self.window = self.builder.get_object("applicationwindow1")
+        self.window.set_titlebar(self.headerBar)
+
         self.add_window(self.window)
         self.window.show_all()
 
