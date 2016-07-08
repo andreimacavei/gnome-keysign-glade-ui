@@ -183,6 +183,10 @@ class KeyConfirmWindow:
 
         self.confirm_window = self.builder.get_object("confirm_window")
         self.invalid_dialog = self.builder.get_object("invalid_dialog")
+
+        headerBar = self.builder.get_object("headerbar1")
+        self.confirm_window.set_titlebar(headerBar)
+
         self.key = data[keyid]
 
     def show_confirm_window(self):
