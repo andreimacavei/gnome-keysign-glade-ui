@@ -6,7 +6,7 @@
     <property name="can_focus">False</property>
     <property name="modal">True</property>
     <property name="window_position">center</property>
-    <signal name="delete-event" handler="onDeleteKeyConfirmWindow" swapped="no"/>
+    <signal name="delete-event" handler="on_delete_key_confirm_window" swapped="no"/>
     <child>
       <object class="GtkBox" id="box1">
         <property name="visible">True</property>
@@ -119,12 +119,13 @@ This will generate an email that must be sent in order to complete the signing p
     <property name="buttons">close</property>
     <property name="text" translatable="yes">&lt;b&gt;Invalid QR Code&lt;/b&gt;</property>
     <property name="use_markup">True</property>
+    <signal name="delete-event" handler="on_delete_invalid_dialog" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="messagedialog-vbox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <signal name="delete-event" handler="onDeleteInvalidDialog" swapped="no"/>
+        <signal name="delete-event" handler="on_delete_invalid_dialog" swapped="no"/>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="messagedialog-action_area">
             <property name="can_focus">False</property>

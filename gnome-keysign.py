@@ -63,29 +63,6 @@ def formatDetailsKeydata(keydata):
     return result
 
 
-class Handler:
-
-    def onDeleteWindow(self, *args):
-        Gtk.main_quit(*args)
-
-    def onDeleteKeyConfirmWindow(self, *args):
-        keyConfirmWindow = args[0]
-        keyConfirmWindow.close()
-
-    def onDeleteInvalidDialog(self, *args):
-        pass
-
-    def onTextChanged(self, entryWidget, *args):
-        print ("Gtk.Entry text changed: {}".format(entryWidget.get_text()))
-        for key,val in data.items():
-            if val['fpr'] == entryWidget.get_text():
-                keyConfirmWindow = KeyConfirmWindow(key)
-                keyConfirmWindow.show_confirm_window()
-                break
-
-# TODO split the signal handlers into different classes
-global_handler = Handler()
-
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
     def __init__(self, keyid, keydata):
@@ -113,16 +90,15 @@ class KeyPresentPage:
         self.keyFingerprintLabel.set_markup(fpr)
 
 
-
 class ApplicationWindow(Gtk.ApplicationWindow):
 
     def __init__(self, builder, application, *args, **kwargs):
         Gtk.Application.__init__(self, application=application, *args, **kwargs)
 
         app = application
-        # self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
-
         self.builder = builder
+        self.builder.connect_signals(self)
+
         self.window = self.builder.get_object("applicationwindow1")
         self.window.connect('destroy', app.on_quit)
         self.app = app
@@ -137,19 +113,16 @@ class ApplicationWindow(Gtk.ApplicationWindow):
         listBox.connect('row-selected', self.on_row_selected, self.builder)
         self.window.show_all()
 
+    def _init_actions(self):
+        pass
+
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-
         keyPresentPage = KeyPresentPage(listBoxRowObject.keyid, builder)
-
         notebook = listBoxObject.get_parent()
         notebook.next_page()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
-
-    def _init_actions(self):
-        pass
-
 
 
 class Application(Gtk.Application):
@@ -161,7 +134,7 @@ class Application(Gtk.Application):
             self, application_id=None) #org.gnome.keysign
 
         self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
-        self.builder.connect_signals(global_handler)
+        self.builder.connect_signals(self)
         self.window = None
 
     def do_startup(self):
@@ -184,6 +157,18 @@ class Application(Gtk.Application):
         # init method
         self.window = ApplicationWindow(self.builder, application=self)
 
+    def on_text_changed(self, entryObject, *args):
+        print ("Gtk.Entry text changed: {}".format(entryObject.get_text()))
+        for key,val in data.items():
+            if val['fpr'] == entryObject.get_text():
+                keyConfirmWindow = KeyConfirmWindow(key)
+                keyConfirmWindow.show_confirm_window()
+                break
+
+    def on_delete_window(self, *args):
+        # Gtk.main_quit(*args)
+        # It seems that calling Gtk.main_quit doesn't work as expected
+        self.on_quit(self)
 
     def do_shutdown(self):
         Gtk.Application.do_shutdown(self)
@@ -201,13 +186,12 @@ class Application(Gtk.Application):
         self.quit()
 
 
-
 class KeyConfirmWindow:
 
     def __init__(self, keyid):
         self.builder = Gtk.Builder()
         self.builder.add_from_file("KeyConfirmWindow.glade")
-        self.builder.connect_signals(global_handler)
+        self.builder.connect_signals(self)
 
         self.confirm_window = self.builder.get_object("confirm_window")
         self.invalid_dialog = self.builder.get_object("invalid_dialog")
@@ -226,6 +210,13 @@ class KeyConfirmWindow:
         self.confirm_window.show_all()
 
     def show_invalid_dialog(self):
+        pass
+
+    def on_delete_key_confirm_window(self, *args):
+        keyConfirmWindow = args[0]
+        keyConfirmWindow.close()
+
+    def on_delete_invalid_dialog(self, *args):
         pass
 
 
