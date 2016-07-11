@@ -98,12 +98,27 @@ class Application(Gtk.Application):
         Gtk.Application.__init__(
             self, application_id=None) #org.gnome.keysign
 
-        self.builder = Gtk.Builder.new_from_file("MainWindow.glade")
+        self.builder = Gtk.Builder()
+        try:
+            self.builder.add_from_file("applicationwindow.ui")
+            self.builder.add_from_file("sendkey.ui")
+            self.builder.add_from_file("receivekey.ui")
+        except:
+            print("ui file not found")
+            sys.exit()
+
         self.builder.connect_signals(self)
         self.window = None
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
+
+        stack = self.builder.get_object('stack1')
+        notebook1 = self.builder.get_object('notebook1')
+        box2 = self.builder.get_object('box2')
+        stack.add_titled(notebook1, 'notebook1', 'Send')
+        stack.add_titled(box2, 'box2', 'Receive')
+        stack.show_all()
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
