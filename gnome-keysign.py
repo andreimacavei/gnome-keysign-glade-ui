@@ -175,6 +175,7 @@ class Application(Gtk.Application):
         fpr = "<b>{}</b>".format(key['fpr'])
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
         keyFingerprintLabel.set_markup(fpr)
+        keyFingerprintLabel.set_selectable(True)
 
         self.notebook1.next_page()
 
