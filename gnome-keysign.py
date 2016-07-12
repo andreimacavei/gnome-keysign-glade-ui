@@ -99,10 +99,10 @@ class Application(Gtk.Application):
         Gtk.Application.do_startup(self)
 
         stack = self.builder.get_object('stack1')
-        notebook1 = self.builder.get_object('notebook1')
-        box2 = self.builder.get_object('box2')
-        stack.add_titled(notebook1, 'notebook1', 'Send')
-        stack.add_titled(box2, 'box2', 'Receive')
+        self.notebook1 = self.builder.get_object('notebook1')
+        self.notebook2 = self.builder.get_object('notebook2')
+        stack.add_titled(self.notebook1, 'notebook1', 'Send')
+        stack.add_titled(self.notebook2, 'notebook2', 'Receive')
         stack.show_all()
 
         # Update the key list with the user's own keys
@@ -137,12 +137,22 @@ class Application(Gtk.Application):
         self.add_window(self.window)
         self.window.show_all()
 
+
     def on_text_changed(self, entryObject, *args):
         print ("Gtk.Entry text changed: {}".format(entryObject.get_text()))
-        for key,val in data.items():
+        for keyid,val in data.items():
+            key = data[keyid]
+
             if val['fpr'] == entryObject.get_text():
-                keyConfirmWindow = KeyConfirmWindow(key)
-                keyConfirmWindow.show_confirm_window()
+                keyIdsLabel = self.builder.get_object("key_ids_label")
+                keyIdsLabel.set_markup(key['id'])
+
+                uidsLabel = self.builder.get_object("uids_label")
+                markup = ""
+                for uid in key['uids']:
+                    markup += uid['uid'] + "\n"
+                uidsLabel.set_markup(markup)
+                self.notebook2.next_page()
                 break
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
@@ -155,8 +165,7 @@ class Application(Gtk.Application):
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
         keyFingerprintLabel.set_markup(fpr)
 
-        notebook = listBoxObject.get_parent()
-        notebook.next_page()
+        self.notebook1.next_page()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
@@ -180,44 +189,6 @@ class Application(Gtk.Application):
 
     def on_quit(self, app, param=None):
         self.quit()
-
-
-class KeyConfirmWindow:
-
-    def __init__(self, keyid):
-        self.builder = Gtk.Builder()
-        self.builder.add_from_file("KeyConfirmWindow.glade")
-        self.builder.connect_signals(self)
-
-        self.confirm_window = self.builder.get_object("confirm_window")
-        self.invalid_dialog = self.builder.get_object("invalid_dialog")
-
-        headerBar = self.builder.get_object("headerbar1")
-        self.confirm_window.set_titlebar(headerBar)
-
-        self.key = data[keyid]
-
-    def show_confirm_window(self):
-        keyIdsLabel = self.builder.get_object("key_ids_label")
-        keyIdsLabel.set_markup(self.key['id'])
-
-        uidsLabel = self.builder.get_object("uids_label")
-        markup = ""
-        for uid in self.key['uids']:
-            markup += uid['uid'] + "\n"
-        uidsLabel.set_markup(markup)
-
-        self.confirm_window.show_all()
-
-    def show_invalid_dialog(self):
-        pass
-
-    def on_delete_key_confirm_window(self, *args):
-        keyConfirmWindow = args[0]
-        keyConfirmWindow.close()
-
-    def on_delete_invalid_dialog(self, *args):
-        pass
 
 
 def main():
