@@ -41,6 +41,18 @@ data = {
 }
 
 
+# The modes that app is running
+SEND_MODE = 0
+RECEIVE_MODE = 1
+
+# The states that the app can have during run-time
+SELECT_KEY_STATE = 2
+PRESENT_KEY_STATE = 3
+ENTER_FPR_STATE = 4
+CONFIRM_KEY_STATE = 5
+
+UNKNONW_STATE = -1
+
 def format_listbox_keydata(keydata):
     keyid = keydata['id']
     uids = keydata['uids']
@@ -105,6 +117,8 @@ class Application(Gtk.Application):
         stack.add_titled(self.notebook1, 'notebook1', 'Send')
         stack.add_titled(self.notebook2, 'notebook2', 'Receive')
         stack.show_all()
+
+        self.back_refresh_button = self.builder.get_object("button1")
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
@@ -178,10 +192,41 @@ class Application(Gtk.Application):
         keyFingerprintLabel.set_markup(fpr)
         keyFingerprintLabel.set_selectable(True)
 
+        self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back", Gtk.IconSize.BUTTON))
+
         self.notebook1.next_page()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
+
+    def get_app_state(self, mode):
+        if mode == SEND_MODE:
+            page = self.notebook1.get_current_page()
+            return SELECT_KEY_STATE if page == 0 else PRESENT_KEY_STATE
+
+        elif mode == RECEIVE_MODE:
+            page = self.notebook2.get_current_page()
+            return ENTER_FPR_STATE if page == 0 else CONFIRM_KEY_STATE
+
+        else:
+            print ("Wrong app mode")
+
+        return UNKNONW_STATE
+
+    def on_back_refresh_button_clicked(self, buttonObject, *args):
+        state = self.get_app_state(SEND_MODE)
+
+        if state == SELECT_KEY_STATE:
+            pass
+
+        elif state == PRESENT_KEY_STATE:
+            self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
+                    Gtk.IconSize.BUTTON))
+            self.notebook1.prev_page()
+
+        else:
+            print ("Wrong app state")
+
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
