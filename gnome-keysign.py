@@ -41,7 +41,7 @@ data = {
 }
 
 
-def formatListboxKeydata(keydata):
+def format_listbox_keydata(keydata):
     keyid = keydata['id']
     uids = keydata['uids']
     expire = keydata['expire']
@@ -55,7 +55,7 @@ def formatListboxKeydata(keydata):
 
     return result
 
-def formatDetailsKeydata(keydata):
+def format_details_keydata(keydata):
     result = "{0}\n".format(keydata['id'])
     for uid in keydata['uids']:
         result += "{}\n".format(uid['uid'])
@@ -77,7 +77,8 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
 class Application(Gtk.Application):
 
-    version = GObject.Property(type=str, flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
+    version = GObject.Property(type=str,
+        flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
 
     def __init__(self):
         Gtk.Application.__init__(
@@ -108,7 +109,7 @@ class Application(Gtk.Application):
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
         for key,val in data.items():
-            listBox.add(ListBoxRowWithKeyData(key, formatListboxKeydata(val)))
+            listBox.add(ListBoxRowWithKeyData(key, format_listbox_keydata(val)))
 
         listBox.connect('row-activated', self.on_row_activated, self.builder)
         listBox.connect('row-selected', self.on_row_selected, self.builder)
@@ -170,7 +171,7 @@ class Application(Gtk.Application):
         key = data[listBoxRowObject.keyid]
 
         keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
-        keyDetailsLabel.set_markup(formatDetailsKeydata(key))
+        keyDetailsLabel.set_markup(format_details_keydata(key))
 
         fpr = "<b>{}</b>".format(key['fpr'])
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
