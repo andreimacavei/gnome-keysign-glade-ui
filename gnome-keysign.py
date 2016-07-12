@@ -186,10 +186,6 @@ class Application(Gtk.Application):
         # It seems that calling Gtk.main_quit doesn't work as expected
         self.on_quit(self)
 
-    def on_delete_invalid_dialog(self, *args):
-        import pdb;pdb.set_trace()
-        pass
-
     def do_shutdown(self):
         Gtk.Application.do_shutdown(self)
 
