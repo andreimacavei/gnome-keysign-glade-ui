@@ -139,21 +139,32 @@ class Application(Gtk.Application):
 
 
     def on_text_changed(self, entryObject, *args):
-        print ("Gtk.Entry text changed: {}".format(entryObject.get_text()))
-        for keyid,val in data.items():
-            key = data[keyid]
+        input_text = entryObject.get_text()
+        print ("Gtk.Entry text changed: {}".format(input_text))
 
-            if val['fpr'] == entryObject.get_text():
-                keyIdsLabel = self.builder.get_object("key_ids_label")
-                keyIdsLabel.set_markup(key['id'])
+        if len(input_text) == 40:
+            for keyid,val in data.items():
+                key = data[keyid]
 
-                uidsLabel = self.builder.get_object("uids_label")
-                markup = ""
-                for uid in key['uids']:
-                    markup += uid['uid'] + "\n"
-                uidsLabel.set_markup(markup)
-                self.notebook2.next_page()
-                break
+                if val['fpr'] == entryObject.get_text():
+                    keyIdsLabel = self.builder.get_object("key_ids_label")
+                    keyIdsLabel.set_markup(key['id'])
+
+                    uidsLabel = self.builder.get_object("uids_label")
+                    markup = ""
+                    for uid in key['uids']:
+                        markup += uid['uid'] + "\n"
+                    uidsLabel.set_markup(markup)
+                    self.notebook2.next_page()
+                    break
+            else:
+                builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
+                dialog = builder.get_object('invalid_dialog')
+                response = dialog.run()
+                if response == Gtk.ResponseType.CLOSE:
+                    print("WARN dialog closed by clicking CANCEL button")
+
+                dialog.destroy()
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
         key = data[listBoxRowObject.keyid]
@@ -174,6 +185,10 @@ class Application(Gtk.Application):
         # Gtk.main_quit(*args)
         # It seems that calling Gtk.main_quit doesn't work as expected
         self.on_quit(self)
+
+    def on_delete_invalid_dialog(self, *args):
+        import pdb;pdb.set_trace()
+        pass
 
     def do_shutdown(self):
         Gtk.Application.do_shutdown(self)
