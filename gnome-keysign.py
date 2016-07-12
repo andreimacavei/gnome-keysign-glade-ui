@@ -75,21 +75,6 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
         self.add(label)
 
 
-class KeyPresentPage:
-
-    def __init__(self, keyid, builder):
-        self.builder = builder
-
-        key = data[keyid]
-
-        self.keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
-        self.keyDetailsLabel.set_markup(formatDetailsKeydata(key))
-
-        fpr = "<b>{}</b>".format(key['fpr'])
-        self.keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
-        self.keyFingerprintLabel.set_markup(fpr)
-
-
 class Application(Gtk.Application):
 
     version = GObject.Property(type=str, flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
@@ -161,7 +146,15 @@ class Application(Gtk.Application):
                 break
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-        keyPresentPage = KeyPresentPage(listBoxRowObject.keyid, builder)
+        key = data[listBoxRowObject.keyid]
+
+        keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
+        keyDetailsLabel.set_markup(formatDetailsKeydata(key))
+
+        fpr = "<b>{}</b>".format(key['fpr'])
+        keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
+        keyFingerprintLabel.set_markup(fpr)
+
         notebook = listBoxObject.get_parent()
         notebook.next_page()
 
