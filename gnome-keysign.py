@@ -40,18 +40,13 @@ data = {
              },
 }
 
-
-# The modes that app is running
-SEND_MODE = 0
-RECEIVE_MODE = 1
-
 # The states that the app can have during run-time
-SELECT_KEY_STATE = 2
-PRESENT_KEY_STATE = 3
-ENTER_FPR_STATE = 4
-CONFIRM_KEY_STATE = 5
+UNKNOWN_STATE = 0
+SELECT_KEY_STATE = 1
+PRESENT_KEY_STATE = 2
+ENTER_FPR_STATE = 3
+CONFIRM_KEY_STATE = 4
 
-UNKNONW_STATE = -1
 
 def format_listbox_keydata(keydata):
     keyid = keydata['id']
@@ -108,15 +103,18 @@ class Application(Gtk.Application):
         self.builder.connect_signals(self)
         self.window = None
 
+        self.state = None
+        self.last_state = None
+
     def do_startup(self):
         Gtk.Application.do_startup(self)
 
-        stack = self.builder.get_object('stack1')
+        self.stack = self.builder.get_object('stack1')
         self.notebook1 = self.builder.get_object('notebook1')
         self.notebook2 = self.builder.get_object('notebook2')
-        stack.add_titled(self.notebook1, 'notebook1', 'Send')
-        stack.add_titled(self.notebook2, 'notebook2', 'Receive')
-        stack.show_all()
+        self.stack.add_titled(self.notebook1, 'notebook1', 'Send')
+        self.stack.add_titled(self.notebook2, 'notebook2', 'Receive')
+        self.stack.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
 
@@ -143,7 +141,6 @@ class Application(Gtk.Application):
         builder = Gtk.Builder.new_from_file("menus.ui")
         self.set_app_menu(builder.get_object("app-menu"))
 
-
     def do_activate(self):
         # Set up the app window
         self.window = self.builder.get_object("applicationwindow1")
@@ -152,6 +149,64 @@ class Application(Gtk.Application):
         self.add_window(self.window)
         self.window.show_all()
 
+    def get_app_state(self):
+        return self.state
+
+    def change_app_state(self):
+        self.last_state = self.state
+
+        visible_top_child = self.stack.get_visible_child()
+        if visible_top_child == self.notebook1:
+            page = self.notebook1.get_current_page()
+            self.state = SELECT_KEY_STATE if page == 0 else PRESENT_KEY_STATE
+        elif visible_top_child == self.notebook2:
+            page = self.notebook2.get_current_page()
+            self.state = ENTER_FPR_STATE if page == 0 else CONFIRM_KEY_STATE
+        else:
+            self.state = UNKNOWN_STATE
+            print ("Unknown application state!")
+
+    def on_top_stack_notify(self, stackObject, paramString, *args):
+        self.change_app_state()
+        # We can advance in a page and then switch to the other
+        # stack page so we need to update the top left button
+        self.update_back_refresh_button_icon()
+
+    def update_back_refresh_button_icon(self):
+        state = self.state
+        last_state = self.last_state
+
+        if last_state and last_state != state:
+            if state == SELECT_KEY_STATE or state == ENTER_FPR_STATE:
+                self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
+                            Gtk.IconSize.BUTTON))
+            elif state == PRESENT_KEY_STATE or state == CONFIRM_KEY_STATE:
+                self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back",
+                            Gtk.IconSize.BUTTON))
+            else:
+                print ("Error: Update button icon failed. Unknown application state!")
+
+
+    def on_back_refresh_button_clicked(self, buttonObject, *args):
+        state = self.get_app_state()
+
+        if state == SELECT_KEY_STATE:
+            pass
+        elif state == PRESENT_KEY_STATE:
+            self.notebook1.prev_page()
+            # We could've used change_app_state but this is faster
+            self.last_state = self.state
+            self.state = SELECT_KEY_STATE
+        elif state == ENTER_FPR_STATE:
+            pass
+        elif state == CONFIRM_KEY_STATE:
+            self.notebook2.prev_page()
+            self.last_state = self.state
+            self.state = ENTER_FPR_STATE
+        else:
+            print ("Error: Unknown application state!")
+
+        self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
         input_text = entryObject.get_text()
@@ -170,7 +225,12 @@ class Application(Gtk.Application):
                     for uid in key['uids']:
                         markup += uid['uid'] + "\n"
                     uidsLabel.set_markup(markup)
+
                     self.notebook2.next_page()
+                    self.last_state = self.state
+                    self.state = CONFIRM_KEY_STATE
+                    self.update_back_refresh_button_icon()
+
                     break
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
@@ -192,41 +252,14 @@ class Application(Gtk.Application):
         keyFingerprintLabel.set_markup(fpr)
         keyFingerprintLabel.set_selectable(True)
 
-        self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back", Gtk.IconSize.BUTTON))
+        self.last_state = self.state
+        self.state = PRESENT_KEY_STATE
+        self.update_back_refresh_button_icon()
 
         self.notebook1.next_page()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
-
-    def get_app_state(self, mode):
-        if mode == SEND_MODE:
-            page = self.notebook1.get_current_page()
-            return SELECT_KEY_STATE if page == 0 else PRESENT_KEY_STATE
-
-        elif mode == RECEIVE_MODE:
-            page = self.notebook2.get_current_page()
-            return ENTER_FPR_STATE if page == 0 else CONFIRM_KEY_STATE
-
-        else:
-            print ("Wrong app mode")
-
-        return UNKNONW_STATE
-
-    def on_back_refresh_button_clicked(self, buttonObject, *args):
-        state = self.get_app_state(SEND_MODE)
-
-        if state == SELECT_KEY_STATE:
-            pass
-
-        elif state == PRESENT_KEY_STATE:
-            self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
-                    Gtk.IconSize.BUTTON))
-            self.notebook1.prev_page()
-
-        else:
-            print ("Wrong app state")
-
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
