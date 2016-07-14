@@ -94,7 +94,7 @@ class Application(Gtk.Application):
         self.builder = Gtk.Builder()
         try:
             self.builder.add_from_file("applicationwindow.ui")
-            self.builder.add_from_file("sendkey.ui")
+            self.builder.add_from_file("send.ui")
             self.builder.add_from_file("receivekey.ui")
         except:
             print("ui file not found")
@@ -110,9 +110,9 @@ class Application(Gtk.Application):
         Gtk.Application.do_startup(self)
 
         self.stack = self.builder.get_object('stack1')
-        self.notebook1 = self.builder.get_object('notebook1')
+        self.stack2 = self.builder.get_object('stack2')
         self.notebook2 = self.builder.get_object('notebook2')
-        self.stack.add_titled(self.notebook1, 'notebook1', 'Send')
+        self.stack.add_titled(self.stack2, 'stack2', 'Send')
         self.stack.add_titled(self.notebook2, 'notebook2', 'Receive')
         self.stack.show_all()
 
@@ -154,9 +154,9 @@ class Application(Gtk.Application):
         self.last_state = self.state
 
         visible_top_child = self.stack.get_visible_child()
-        if visible_top_child == self.notebook1:
-            page = self.notebook1.get_current_page()
-            self.state = SELECT_KEY_STATE if page == 0 else PRESENT_KEY_STATE
+        if visible_top_child == self.stack2:
+            page = self.stack2.get_visible_child_name()
+            self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
         elif visible_top_child == self.notebook2:
             page = self.notebook2.get_current_page()
             self.state = ENTER_FPR_STATE if page == 0 else CONFIRM_KEY_STATE
@@ -191,7 +191,7 @@ class Application(Gtk.Application):
         if state == SELECT_KEY_STATE:
             pass
         elif state == PRESENT_KEY_STATE:
-            self.notebook1.prev_page()
+            self.stack2.set_visible_child_name('page0')
             # We could've used change_app_state but this is faster
             self.last_state = self.state
             self.state = SELECT_KEY_STATE
@@ -254,7 +254,7 @@ class Application(Gtk.Application):
         self.state = PRESENT_KEY_STATE
         self.update_back_refresh_button_icon()
 
-        self.notebook1.next_page()
+        self.stack2.set_visible_child_name('page1')
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
