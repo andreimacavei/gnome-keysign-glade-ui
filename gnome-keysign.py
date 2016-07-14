@@ -38,6 +38,26 @@ data = {
               'expire':'2016-05-20',
               'nsigs':2
              },
+    'key3' : {'id':'2048R/ED8312A2 2010-04-08',
+              'fpr':'6011B4B032D3DED8312A2BEFDD433DCF8956D0D3',
+              'uids':[
+                    {'uid':'John Who john.who@test.com',
+                     'sigs':['ED8312A2']
+                    }
+                    ],
+              'expire':'2016-07-14',
+              'nsigs':1
+             },
+    'key4' : {'id':'2048R/D32DFCFB 2013-01-01',
+              'fpr':'CEDF933BF372D3D32DFCFBB870D356F7ECD46CF2',
+              'uids':[
+                    {'uid':'Educated Foo edu.foo@test.com',
+                     'sigs':['D32DFCFB','6FB8DCCE', '8956D0D3']
+                    }
+                    ],
+              'expire':'2020-05-05',
+              'nsigs':3
+             },
 }
 
 # The states that the app can have during run-time
