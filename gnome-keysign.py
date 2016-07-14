@@ -83,11 +83,23 @@ def format_listbox_keydata(keydata):
     return result
 
 def format_details_keydata(keydata):
-    result = "{0}\n".format(keydata['id'])
+    result = ""
     for uid in keydata['uids']:
         result += "{}\n".format(uid['uid'])
 
     return result
+
+def format_fpr(fingerprint):
+    fpr = ""
+    for i in range(0, len(fingerprint), 4):
+        fpr += fingerprint[i:i+4]
+        if i != 0 and (i+4) % 20 == 0:
+            fpr += "\n"
+        else:
+            fpr += " "
+    fpr = fpr.rstrip()
+    # self.fingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
+    return fpr
 
 
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
@@ -262,12 +274,16 @@ class Application(Gtk.Application):
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
         key = data[listBoxRowObject.keyid]
 
-        keyDetailsLabel = self.builder.get_object("keyDetailsLabel")
-        keyDetailsLabel.set_markup(format_details_keydata(key))
+        keyidLabel = self.builder.get_object("keyidLabel")
+        keyid_str = "{0}".format(key['id'])
+        keyidLabel.set_markup(keyid_str)
 
-        fpr = "<b>{}</b>".format(key['fpr'])
+        uidsLabel = self.builder.get_object("uidsLabel")
+        uidsLabel.set_markup(format_details_keydata(key))
+
+        fpr = format_fpr(key['fpr'])
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
-        keyFingerprintLabel.set_markup(fpr)
+        keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
 
         self.last_state = self.state
