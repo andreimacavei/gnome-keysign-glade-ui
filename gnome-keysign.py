@@ -95,7 +95,7 @@ class Application(Gtk.Application):
         try:
             self.builder.add_from_file("applicationwindow.ui")
             self.builder.add_from_file("send.ui")
-            self.builder.add_from_file("receivekey.ui")
+            self.builder.add_from_file("receive.ui")
         except:
             print("ui file not found")
             sys.exit()
@@ -111,9 +111,9 @@ class Application(Gtk.Application):
 
         self.stack = self.builder.get_object('stack1')
         self.stack2 = self.builder.get_object('stack2')
-        self.notebook2 = self.builder.get_object('notebook2')
+        self.stack3 = self.builder.get_object('stack3')
         self.stack.add_titled(self.stack2, 'stack2', 'Send')
-        self.stack.add_titled(self.notebook2, 'notebook2', 'Receive')
+        self.stack.add_titled(self.stack3, 'stack3', 'Receive')
         self.stack.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
@@ -157,9 +157,9 @@ class Application(Gtk.Application):
         if visible_top_child == self.stack2:
             page = self.stack2.get_visible_child_name()
             self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
-        elif visible_top_child == self.notebook2:
-            page = self.notebook2.get_current_page()
-            self.state = ENTER_FPR_STATE if page == 0 else CONFIRM_KEY_STATE
+        elif visible_top_child == self.stack3:
+            page = self.stack3.get_visible_child_name()
+            self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
         else:
             self.state = UNKNOWN_STATE
             print ("Unknown application state!")
@@ -198,7 +198,7 @@ class Application(Gtk.Application):
         elif state == ENTER_FPR_STATE:
             pass
         elif state == CONFIRM_KEY_STATE:
-            self.notebook2.prev_page()
+            self.stack3.set_visible_child_name('page0')
             self.last_state = self.state
             self.state = ENTER_FPR_STATE
         else:
@@ -224,7 +224,7 @@ class Application(Gtk.Application):
                         markup += uid['uid'] + "\n"
                     uidsLabel.set_markup(markup)
 
-                    self.notebook2.next_page()
+                    self.stack3.set_visible_child_name('page1')
                     self.last_state = self.state
                     self.state = CONFIRM_KEY_STATE
                     self.update_back_refresh_button_icon()
