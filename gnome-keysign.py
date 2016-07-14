@@ -89,17 +89,20 @@ def format_details_keydata(keydata):
 
     return result
 
-def format_fpr(fingerprint):
-    fpr = ""
-    for i in range(0, len(fingerprint), 4):
-        fpr += fingerprint[i:i+4]
+def clean_fingerprint(fpr):
+    res_fpr = ''.join(fpr.split())
+    return res_fpr.upper()
+
+def format_fpr(fpr):
+    res_fpr = ""
+    for i in range(0, len(fpr), 4):
+        res_fpr += fpr[i:i+4]
         if i != 0 and (i+4) % 20 == 0:
-            fpr += "\n"
+            res_fpr += "\n"
         else:
-            fpr += " "
-    fpr = fpr.rstrip()
-    # self.fingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
-    return fpr
+            res_fpr += " "
+    res_fpr = res_fpr.rstrip()
+    return res_fpr
 
 
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
@@ -239,14 +242,14 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
-        input_text = entryObject.get_text()
+        input_text = clean_fingerprint(entryObject.get_text())
         print ("Gtk.Entry text changed: {}".format(input_text))
 
         if len(input_text) == 40:
             for keyid,val in data.items():
                 key = data[keyid]
 
-                if val['fpr'] == entryObject.get_text():
+                if val['fpr'] == input_text:
                     keyIdsLabel = self.builder.get_object("key_ids_label")
                     keyIdsLabel.set_markup(key['id'])
 
