@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import logging
 import signal
 import sys
+logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -139,11 +141,12 @@ class Application(Gtk.Application):
             self.builder.add_from_file("send.ui")
             self.builder.add_from_file("receive.ui")
         except:
-            print("ui file not found")
+            self.log.exception("ui file not found")
             sys.exit()
 
         self.builder.connect_signals(self)
         self.window = None
+        self.log = logging.getLogger()
 
         self.state = None
         self.last_state = None
@@ -204,7 +207,7 @@ class Application(Gtk.Application):
             self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
         else:
             self.state = UNKNOWN_STATE
-            print ("Unknown application state!")
+            self.log.error("Unknown application state!")
 
     def on_top_stack_notify(self, stackObject, paramString, *args):
         self.change_app_state()
@@ -224,8 +227,7 @@ class Application(Gtk.Application):
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back",
                             Gtk.IconSize.BUTTON))
             else:
-                print ("Error: Update button icon failed. Unknown application state!")
-
+                self.log.error("Update button icon failed. Unknown application state!")
 
     def on_back_refresh_button_clicked(self, buttonObject, *args):
         state = self.get_app_state()
@@ -244,13 +246,13 @@ class Application(Gtk.Application):
             self.last_state = self.state
             self.state = ENTER_FPR_STATE
         else:
-            print ("Error: Unknown application state!")
+            self.log.error("Unknown application state!")
 
         self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
         cleaned_fpr = clean_fingerprint(entryObject.get_text())
-        print ("Gtk.Entry text changed: {}".format(cleaned_fpr))
+        self.log.debug("Gtk.Entry text changed: {}".format(cleaned_fpr))
 
         if is_valid_fingerprint(cleaned_fpr):
             for keyid,val in data.items():
@@ -278,7 +280,8 @@ class Application(Gtk.Application):
                 dialog = builder.get_object('invalid_dialog')
                 response = dialog.run()
                 if response == Gtk.ResponseType.CLOSE:
-                    print("WARN dialog closed by clicking CANCEL button")
+                    self.log.debug("WARN dialog closed by clicking CLOSE button")
+                    pass
 
                 dialog.destroy()
 
@@ -304,7 +307,7 @@ class Application(Gtk.Application):
         self.stack2.set_visible_child_name('page1')
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
-        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+        self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
