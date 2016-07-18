@@ -209,6 +209,8 @@ class Application(Gtk.Application):
             self.state = UNKNOWN_STATE
             self.log.error("Unknown application state!")
 
+        self.log.debug("App state changed! Last state: {}. Current state: {}".format(self.last_state, self.state))
+
     def on_top_stack_notify(self, stackObject, paramString, *args):
         self.change_app_state()
         # We can advance in a page and then switch to the other
