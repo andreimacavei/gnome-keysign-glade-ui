@@ -115,13 +115,12 @@ def format_fpr(fpr):
 
 class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
-    def __init__(self, keyid, keydata):
+    def __init__(self, keydata):
         super(Gtk.ListBoxRow, self).__init__()
-        self.keyid = keyid
         self.data = keydata
 
         label = Gtk.Label()
-        label.set_markup(keydata)
+        label.set_markup(format_listbox_keydata(self.data))
         self.add(label)
 
 
@@ -163,8 +162,8 @@ class Application(Gtk.Application):
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
-        for key,val in data.items():
-            listBox.add(ListBoxRowWithKeyData(key, format_listbox_keydata(val)))
+        for keydata in data.values():
+            listBox.add(ListBoxRowWithKeyData(keydata))
 
         listBox.connect('row-activated', self.on_row_activated, self.builder)
         listBox.connect('row-selected', self.on_row_selected, self.builder)
@@ -284,7 +283,7 @@ class Application(Gtk.Application):
                 dialog.destroy()
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-        key = data[listBoxRowObject.keyid]
+        key = listBoxRowObject.data
 
         keyidLabel = self.builder.get_object("keyidLabel")
         keyid_str = "{0}".format(key['id'])
@@ -305,7 +304,7 @@ class Application(Gtk.Application):
         self.stack2.set_visible_child_name('page1')
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
-        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.keyid))
+        print ("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
