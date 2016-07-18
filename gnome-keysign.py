@@ -93,6 +93,14 @@ def clean_fingerprint(fpr):
     res_fpr = ''.join(fpr.split())
     return res_fpr.upper()
 
+def is_valid_fingerprint(fpr):
+    cleaned_fpr = clean_fingerprint(fpr)
+    if len(cleaned_fpr) != 40:
+        return False
+
+    return True
+
+
 def format_fpr(fpr):
     res_fpr = ""
     for i in range(0, len(fpr), 4):
@@ -242,14 +250,15 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
-        input_text = clean_fingerprint(entryObject.get_text())
-        print ("Gtk.Entry text changed: {}".format(input_text))
+        cleaned_fpr = clean_fingerprint(entryObject.get_text())
+        print ("Gtk.Entry text changed: {}".format(cleaned_fpr))
 
-        if len(input_text) == 40:
+        if is_valid_fingerprint(cleaned_fpr):
             for keyid,val in data.items():
                 key = data[keyid]
 
-                if val['fpr'] == input_text:
+                if val['fpr'] == cleaned_fpr:
+
                     keyIdsLabel = self.builder.get_object("key_ids_label")
                     keyIdsLabel.set_markup(key['id'])
 
