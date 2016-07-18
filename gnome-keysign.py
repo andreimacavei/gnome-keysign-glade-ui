@@ -67,8 +67,8 @@ UNKNOWN_STATE = 0
 SELECT_KEY_STATE = 1
 PRESENT_KEY_STATE = 2
 ENTER_FPR_STATE = 3
-CONFIRM_KEY_STATE = 4
-
+DOWNLOAD_KEY_STATE = 4
+CONFIRM_KEY_STATE = 5
 
 def format_listbox_keydata(keydata):
     keyid = keydata['id']
@@ -207,7 +207,12 @@ class Application(Gtk.Application):
                 self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
             elif visible_top_child == self.stack3:
                 page = self.stack3.get_visible_child_name()
-                self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
+                if page == 'page0':
+                    self.state = ENTER_FPR_STATE
+                elif page == 'page1':
+                    self.state = DOWNLOAD_KEY_STATE
+                else:
+                    self.state = CONFIRM_KEY_STATE
             else:
                 self.state = UNKNOWN_STATE
                 self.log.error("Unknown application state!")
@@ -228,7 +233,7 @@ class Application(Gtk.Application):
             if state == SELECT_KEY_STATE or state == ENTER_FPR_STATE:
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
                             Gtk.IconSize.BUTTON))
-            elif state == PRESENT_KEY_STATE or state == CONFIRM_KEY_STATE:
+            elif state in (PRESENT_KEY_STATE, DOWNLOAD_KEY_STATE, CONFIRM_KEY_STATE):
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back",
                             Gtk.IconSize.BUTTON))
             else:
@@ -238,12 +243,15 @@ class Application(Gtk.Application):
         state = self.get_app_state()
 
         if state == SELECT_KEY_STATE:
-            pass
+            self.update_app_state(SELECT_KEY_STATE)
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
             self.update_app_state(SELECT_KEY_STATE)
         elif state == ENTER_FPR_STATE:
-            pass
+            self.update_app_state(ENTER_FPR_STATE)
+        elif state == DOWNLOAD_KEY_STATE:
+            self.stack3.set_visible_child_name('page0')
+            self.update_app_state(ENTER_FPR_STATE)
         elif state == CONFIRM_KEY_STATE:
             self.stack3.set_visible_child_name('page0')
             self.update_app_state(ENTER_FPR_STATE)
@@ -272,7 +280,7 @@ class Application(Gtk.Application):
                     uidsLabel.set_markup(markup)
 
                     self.stack3.set_visible_child_name('page1')
-                    self.update_app_state(CONFIRM_KEY_STATE)
+                    self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
 
                     break
