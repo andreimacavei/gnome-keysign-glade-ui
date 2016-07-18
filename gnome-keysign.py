@@ -195,19 +195,22 @@ class Application(Gtk.Application):
     def get_app_state(self):
         return self.state
 
-    def update_app_state(self):
+    def update_app_state(self, new_state=None):
         self.last_state = self.state
 
-        visible_top_child = self.stack.get_visible_child()
-        if visible_top_child == self.stack2:
-            page = self.stack2.get_visible_child_name()
-            self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
-        elif visible_top_child == self.stack3:
-            page = self.stack3.get_visible_child_name()
-            self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
+        if new_state:
+            self.state = new_state
         else:
-            self.state = UNKNOWN_STATE
-            self.log.error("Unknown application state!")
+            visible_top_child = self.stack.get_visible_child()
+            if visible_top_child == self.stack2:
+                page = self.stack2.get_visible_child_name()
+                self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
+            elif visible_top_child == self.stack3:
+                page = self.stack3.get_visible_child_name()
+                self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
+            else:
+                self.state = UNKNOWN_STATE
+                self.log.error("Unknown application state!")
 
         self.log.debug("App state changed! Last state: {}. Current state: {}".format(self.last_state, self.state))
 
@@ -238,15 +241,12 @@ class Application(Gtk.Application):
             pass
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
-            # We could've used update_app_state but this is faster
-            self.last_state = self.state
-            self.state = SELECT_KEY_STATE
+            self.update_app_state(SELECT_KEY_STATE)
         elif state == ENTER_FPR_STATE:
             pass
         elif state == CONFIRM_KEY_STATE:
             self.stack3.set_visible_child_name('page0')
-            self.last_state = self.state
-            self.state = ENTER_FPR_STATE
+            self.update_app_state(ENTER_FPR_STATE)
         else:
             self.log.error("Unknown application state!")
 
@@ -272,8 +272,7 @@ class Application(Gtk.Application):
                     uidsLabel.set_markup(markup)
 
                     self.stack3.set_visible_child_name('page1')
-                    self.last_state = self.state
-                    self.state = CONFIRM_KEY_STATE
+                    self.update_app_state(CONFIRM_KEY_STATE)
                     self.update_back_refresh_button_icon()
 
                     break
@@ -302,11 +301,9 @@ class Application(Gtk.Application):
         keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
 
-        self.last_state = self.state
-        self.state = PRESENT_KEY_STATE
-        self.update_back_refresh_button_icon()
-
         self.stack2.set_visible_child_name('page1')
+        self.update_app_state(PRESENT_KEY_STATE)
+        self.update_back_refresh_button_icon()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
