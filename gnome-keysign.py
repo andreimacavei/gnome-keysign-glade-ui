@@ -195,7 +195,7 @@ class Application(Gtk.Application):
     def get_app_state(self):
         return self.state
 
-    def change_app_state(self):
+    def update_app_state(self):
         self.last_state = self.state
 
         visible_top_child = self.stack.get_visible_child()
@@ -212,7 +212,7 @@ class Application(Gtk.Application):
         self.log.debug("App state changed! Last state: {}. Current state: {}".format(self.last_state, self.state))
 
     def on_top_stack_notify(self, stackObject, paramString, *args):
-        self.change_app_state()
+        self.update_app_state()
         # We can advance in a page and then switch to the other
         # stack page so we need to update the top left button
         self.update_back_refresh_button_icon()
@@ -238,7 +238,7 @@ class Application(Gtk.Application):
             pass
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
-            # We could've used change_app_state but this is faster
+            # We could've used update_app_state but this is faster
             self.last_state = self.state
             self.state = SELECT_KEY_STATE
         elif state == ENTER_FPR_STATE:
