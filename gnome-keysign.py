@@ -128,6 +128,13 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
 class Application(Gtk.Application):
 
+    __gsignals__ = {
+        'key-download': (GObject.SIGNAL_RUN_LAST, None,
+                         # Hm, this is a str for now, but ideally
+                         # it'd be the full key object
+                         (GObject.TYPE_PYOBJECT,)),
+    }
+
     version = GObject.Property(type=str,
         flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
 
@@ -147,6 +154,8 @@ class Application(Gtk.Application):
         self.builder.connect_signals(self)
         self.window = None
         self.log = logging.getLogger()
+
+        self.connect('key-download', self.on_key_download)
 
         self.state = None
         self.last_state = None
@@ -191,6 +200,9 @@ class Application(Gtk.Application):
 
         self.add_window(self.window)
         self.window.show_all()
+
+    def on_key_download(self, app, key):
+        self.log.info("Signal emitted: key-download: {}".format(key['id']))
 
     def get_app_state(self):
         return self.state
@@ -283,6 +295,7 @@ class Application(Gtk.Application):
                     self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
 
+                    self.emit('key-download', key)
                     break
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
