@@ -4,6 +4,7 @@
 import logging
 import signal
 import sys
+import time
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
 
 import gi
@@ -201,8 +202,17 @@ class Application(Gtk.Application):
         self.add_window(self.window)
         self.window.show_all()
 
+    def download_key(self, key):
+        self.stack3.set_visible_child_name('page2')
+        self.update_app_state(CONFIRM_KEY_STATE)
+        self.update_back_refresh_button_icon()
+
+        return False
+
     def on_key_download(self, app, key):
         self.log.info("Signal emitted: key-download: {}".format(key['id']))
+        download_time = 3
+        GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
     def get_app_state(self):
         return self.state
@@ -328,6 +338,14 @@ class Application(Gtk.Application):
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+
+    def on_cancel_download_button_clicked(self, buttonObject, *args):
+        self.log.debug("Cancel download button clicked.")
+        pass
+
+    def on_redo_button_clicked(self, buttonObject, *args):
+        self.log.debug("Redo button clicked.")
+        pass
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
