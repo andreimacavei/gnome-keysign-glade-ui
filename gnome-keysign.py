@@ -174,6 +174,7 @@ class Application(Gtk.Application):
 
         self.back_refresh_button = self.builder.get_object("button1")
         self.warning_download_label = self.builder.get_object("warning_download_label")
+        self.spinner = self.builder.get_object("spinner1")
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
@@ -210,6 +211,7 @@ class Application(Gtk.Application):
             self.update_app_state(CONFIRM_KEY_STATE)
             self.update_back_refresh_button_icon()
 
+        self.spinner.stop()
         self.cancel_download_flag = False
         return False
 
@@ -306,6 +308,8 @@ class Application(Gtk.Application):
                     uidsLabel.set_markup(markup)
 
                     self.warning_download_label.hide()
+                    self.spinner.start()
+
                     self.stack3.set_visible_child_name('page1')
                     self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
@@ -348,6 +352,7 @@ class Application(Gtk.Application):
         self.log.debug("Cancel download button clicked.")
         self.cancel_download_flag = True
         self.warning_download_label.show()
+        self.spinner.stop()
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
