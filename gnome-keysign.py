@@ -160,6 +160,7 @@ class Application(Gtk.Application):
 
         self.state = None
         self.last_state = None
+        self.cancel_download_flag = False
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -172,6 +173,7 @@ class Application(Gtk.Application):
         self.stack.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
+        self.warning_download_label = self.builder.get_object("warning_download_label")
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
@@ -203,10 +205,12 @@ class Application(Gtk.Application):
         self.window.show_all()
 
     def download_key(self, key):
-        self.stack3.set_visible_child_name('page2')
-        self.update_app_state(CONFIRM_KEY_STATE)
-        self.update_back_refresh_button_icon()
+        if not self.cancel_download_flag:
+            self.stack3.set_visible_child_name('page2')
+            self.update_app_state(CONFIRM_KEY_STATE)
+            self.update_back_refresh_button_icon()
 
+        self.cancel_download_flag = False
         return False
 
     def on_key_download(self, app, key):
@@ -301,6 +305,7 @@ class Application(Gtk.Application):
                         markup += uid['uid'] + "\n"
                     uidsLabel.set_markup(markup)
 
+                    self.warning_download_label.hide()
                     self.stack3.set_visible_child_name('page1')
                     self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
@@ -341,7 +346,8 @@ class Application(Gtk.Application):
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
-        pass
+        self.cancel_download_flag = True
+        self.warning_download_label.show()
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
