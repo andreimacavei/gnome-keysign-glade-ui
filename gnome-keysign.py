@@ -351,6 +351,7 @@ class Application(Gtk.Application):
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
                 dialog = builder.get_object('invalid_dialog')
+                dialog.set_transient_for(self.window)
                 response = dialog.run()
                 if response == Gtk.ResponseType.CLOSE:
                     self.log.debug("WARN dialog closed by clicking CLOSE button")
