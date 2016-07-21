@@ -4,6 +4,7 @@
 import logging
 import signal
 import sys
+import time
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
 
 import gi
@@ -67,8 +68,8 @@ UNKNOWN_STATE = 0
 SELECT_KEY_STATE = 1
 PRESENT_KEY_STATE = 2
 ENTER_FPR_STATE = 3
-CONFIRM_KEY_STATE = 4
-
+DOWNLOAD_KEY_STATE = 4
+CONFIRM_KEY_STATE = 5
 
 def format_listbox_keydata(keydata):
     keyid = keydata['id']
@@ -128,6 +129,13 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 
 class Application(Gtk.Application):
 
+    __gsignals__ = {
+        'key-download': (GObject.SIGNAL_RUN_LAST, None,
+                         # Hm, this is a str for now, but ideally
+                         # it'd be the full key object
+                         (GObject.TYPE_PYOBJECT,)),
+    }
+
     version = GObject.Property(type=str,
         flags=GObject.ParamFlags.CONSTRUCT_ONLY|GObject.ParamFlags.READWRITE)
 
@@ -148,8 +156,11 @@ class Application(Gtk.Application):
         self.window = None
         self.log = logging.getLogger()
 
+        self.connect('key-download', self.on_key_download)
+
         self.state = None
         self.last_state = None
+        self.cancel_download_flag = False
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -162,6 +173,8 @@ class Application(Gtk.Application):
         self.stack.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
+        self.warning_download_label = self.builder.get_object("warning_download_label")
+        self.spinner = self.builder.get_object("spinner1")
 
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
@@ -192,6 +205,21 @@ class Application(Gtk.Application):
         self.add_window(self.window)
         self.window.show_all()
 
+    def download_key(self, key):
+        if not self.cancel_download_flag:
+            self.stack3.set_visible_child_name('page2')
+            self.update_app_state(CONFIRM_KEY_STATE)
+            self.update_back_refresh_button_icon()
+
+        self.spinner.stop()
+        self.cancel_download_flag = False
+        return False
+
+    def on_key_download(self, app, key):
+        self.log.info("Signal emitted: key-download: {}".format(key['id']))
+        download_time = 3
+        GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
+
     def get_app_state(self):
         return self.state
 
@@ -207,7 +235,12 @@ class Application(Gtk.Application):
                 self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
             elif visible_top_child == self.stack3:
                 page = self.stack3.get_visible_child_name()
-                self.state = ENTER_FPR_STATE if page == 'page0' else CONFIRM_KEY_STATE
+                if page == 'page0':
+                    self.state = ENTER_FPR_STATE
+                elif page == 'page1':
+                    self.state = DOWNLOAD_KEY_STATE
+                else:
+                    self.state = CONFIRM_KEY_STATE
             else:
                 self.state = UNKNOWN_STATE
                 self.log.error("Unknown application state!")
@@ -228,7 +261,7 @@ class Application(Gtk.Application):
             if state == SELECT_KEY_STATE or state == ENTER_FPR_STATE:
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
                             Gtk.IconSize.BUTTON))
-            elif state == PRESENT_KEY_STATE or state == CONFIRM_KEY_STATE:
+            elif state in (PRESENT_KEY_STATE, DOWNLOAD_KEY_STATE, CONFIRM_KEY_STATE):
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back",
                             Gtk.IconSize.BUTTON))
             else:
@@ -238,12 +271,15 @@ class Application(Gtk.Application):
         state = self.get_app_state()
 
         if state == SELECT_KEY_STATE:
-            pass
+            self.update_app_state(SELECT_KEY_STATE)
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
             self.update_app_state(SELECT_KEY_STATE)
         elif state == ENTER_FPR_STATE:
-            pass
+            self.update_app_state(ENTER_FPR_STATE)
+        elif state == DOWNLOAD_KEY_STATE:
+            self.stack3.set_visible_child_name('page0')
+            self.update_app_state(ENTER_FPR_STATE)
         elif state == CONFIRM_KEY_STATE:
             self.stack3.set_visible_child_name('page0')
             self.update_app_state(ENTER_FPR_STATE)
@@ -271,10 +307,14 @@ class Application(Gtk.Application):
                         markup += uid['uid'] + "\n"
                     uidsLabel.set_markup(markup)
 
+                    self.warning_download_label.hide()
+                    self.spinner.start()
+
                     self.stack3.set_visible_child_name('page1')
-                    self.update_app_state(CONFIRM_KEY_STATE)
+                    self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
 
+                    self.emit('key-download', key)
                     break
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
@@ -307,6 +347,16 @@ class Application(Gtk.Application):
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+
+    def on_cancel_download_button_clicked(self, buttonObject, *args):
+        self.log.debug("Cancel download button clicked.")
+        self.cancel_download_flag = True
+        self.warning_download_label.show()
+        self.spinner.stop()
+
+    def on_redo_button_clicked(self, buttonObject, *args):
+        self.log.debug("Redo button clicked.")
+        pass
 
     def on_delete_window(self, *args):
         # Gtk.main_quit(*args)
