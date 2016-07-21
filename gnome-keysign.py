@@ -354,6 +354,10 @@ class Application(Gtk.Application):
         self.warning_download_label.show()
         self.spinner.stop()
 
+    def on_confirm_button_clicked(self, buttonObject, *args):
+        self.log.debug("Confirm sign button clicked.")
+        pass
+
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
         pass
