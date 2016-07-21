@@ -151,11 +151,10 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="warning_download_label">
+          <object class="GtkLabel" id="error_download_label">
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Key download was interrupted!</property>
             <attributes>
-              <attribute name="weight" value="bold"/>
               <attribute name="foreground" value="#cccc00000000"/>
             </attributes>
           </object>
@@ -380,9 +379,11 @@ This will generate an email that must be sent in order to complete the signing p
         </child>
         <child>
           <object class="GtkLabel" id="error_signing_label">
-            <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">label</property>
+            <property name="label" translatable="yes">Key signing was interrupted!</property>
+            <attributes>
+              <attribute name="foreground" value="#cccc00000000"/>
+            </attributes>
           </object>
           <packing>
             <property name="expand">False</property>

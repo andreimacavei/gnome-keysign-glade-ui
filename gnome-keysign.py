@@ -174,9 +174,9 @@ class Application(Gtk.Application):
         self.stack.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
-        self.warning_download_label = self.builder.get_object("warning_download_label")
+        self.error_download_label = self.builder.get_object("error_download_label")
         self.spinner = self.builder.get_object("spinner1")
-
+        self.error_sign_label = self.builder.get_object("error_signing_label")
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
         for keydata in data.values():
@@ -313,7 +313,7 @@ class Application(Gtk.Application):
                         markup += uid['uid'] + "\n"
                     uidsLabel.set_markup(markup)
 
-                    self.warning_download_label.hide()
+                    self.error_download_label.hide()
                     self.spinner.start()
 
                     self.stack3.set_visible_child_name('page1')
@@ -357,7 +357,7 @@ class Application(Gtk.Application):
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
         self.cancel_download_flag = True
-        self.warning_download_label.show()
+        self.error_download_label.show()
         self.spinner.stop()
 
     def on_confirm_button_clicked(self, buttonObject, *args):
@@ -365,6 +365,8 @@ class Application(Gtk.Application):
         self.stack3.set_visible_child_name('page3')
         self.update_app_state(SIGN_KEY_STATE)
         self.update_back_refresh_button_icon()
+
+        self.error_sign_label.hide()
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
