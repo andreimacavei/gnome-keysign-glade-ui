@@ -396,10 +396,15 @@ class Application(Gtk.Application):
         self.update_app_state(SIGN_KEY_STATE)
         self.update_back_refresh_button_icon()
 
-
         # FIXME user should be able to choose which UIDs he wants to sign
         uids_to_sign = self.key['uids']
         self.emit('key-signing', self.key, uids_to_sign)
+
+    def on_cancel_signing_button_clicked(self, buttonObject, *args):
+        self.log.debug("Cancel signing button clicked.")
+        self.cancel_flag = True
+        self.error_sign_label.show()
+        self.spinner2.stop()
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
