@@ -135,6 +135,10 @@ class Application(Gtk.Application):
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,)),
+        'key-signing': (GObject.SIGNAL_RUN_LAST, None,
+                         # Hm, this is a str for now, but ideally
+                         # it'd be the full key object
+                         (GObject.TYPE_PYOBJECT,GObject.TYPE_PYOBJECT)),
     }
 
     version = GObject.Property(type=str,
@@ -158,10 +162,12 @@ class Application(Gtk.Application):
         self.log = logging.getLogger()
 
         self.connect('key-download', self.on_key_download)
+        self.connect('key-signing', self.on_key_signing)
 
         self.state = None
         self.last_state = None
         self.cancel_download_flag = False
+        self.key = None
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -220,6 +226,19 @@ class Application(Gtk.Application):
         self.log.info("Signal emitted: key-download: {}".format(key['id']))
         download_time = 3
         GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
+
+    def sign_key(self, key, uids):
+        pass
+
+    def on_key_signing(self, app, key, uids):
+        self.log.info("Signal emitted: key-signing: {}".format(key['id']))
+
+        uids_repr = '\n'.join([uid['uid'] for uid in uids])
+        uids_signed_label = self.builder.get_object("uids_signed_label")
+        uids_signed_label.set_markup(uids_repr)
+
+        signing_time = 2
+        GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
 
     def get_app_state(self):
         return self.state
@@ -303,7 +322,6 @@ class Application(Gtk.Application):
                 key = data[keyid]
 
                 if val['fpr'] == cleaned_fpr:
-
                     keyIdsLabel = self.builder.get_object("key_ids_label")
                     keyIdsLabel.set_markup(key['id'])
 
@@ -320,6 +338,7 @@ class Application(Gtk.Application):
                     self.update_app_state(DOWNLOAD_KEY_STATE)
                     self.update_back_refresh_button_icon()
 
+                    self.key = key
                     self.emit('key-download', key)
                     break
             else:
@@ -367,6 +386,9 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
         self.error_sign_label.hide()
+        # FIXME user should be able to choose which UIDs he wants to sign
+        uids_to_sign = self.key['uids']
+        self.emit('key-signing', self.key, uids_to_sign)
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
