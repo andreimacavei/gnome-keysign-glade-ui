@@ -183,7 +183,7 @@ class Application(Gtk.Application):
         self.error_download_label = self.builder.get_object("error_download_label")
         self.spinner1 = self.builder.get_object("spinner1")
         self.spinner2 = self.builder.get_object("spinner2")
-        self.error_sign_label = self.builder.get_object("error_signing_label")
+        self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
         for keydata in data.values():
@@ -230,8 +230,8 @@ class Application(Gtk.Application):
 
     def sign_key(self, key, uids):
         if not self.cancel_flag:
-            self.error_sign_label.set_markup("Key succesfully signed!")
-            self.error_sign_label.show()
+            self.succes_fail_signing_label.set_markup("Key succesfully signed!")
+            self.succes_fail_signing_label.show()
 
         self.spinner2.stop()
         self.cancel_flag = False
@@ -390,7 +390,7 @@ class Application(Gtk.Application):
     def on_confirm_button_clicked(self, buttonObject, *args):
         self.log.debug("Confirm sign button clicked.")
 
-        self.error_sign_label.hide()
+        self.succes_fail_signing_label.hide()
         self.spinner2.start()
 
         self.stack3.set_visible_child_name('page3')
@@ -404,7 +404,8 @@ class Application(Gtk.Application):
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel signing button clicked.")
         self.cancel_flag = True
-        self.error_sign_label.show()
+        self.succes_fail_signing_label.set_markup('Key signing was interrupted!')
+        self.succes_fail_signing_label.show()
         self.spinner2.stop()
 
     def on_redo_button_clicked(self, buttonObject, *args):

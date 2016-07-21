@@ -377,11 +377,11 @@ This will generate an email that must be sent in order to complete the signing p
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="error_signing_label">
+          <object class="GtkLabel" id="succes_fail_signing_label">
             <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Key signing was interrupted!</property>
             <attributes>
-              <attribute name="foreground" value="#cccc00000000"/>
+              <attribute name="weight" value="heavy"/>
+              <attribute name="foreground" value="#000000000000"/>
             </attributes>
           </object>
           <packing>
