@@ -166,7 +166,7 @@ class Application(Gtk.Application):
 
         self.state = None
         self.last_state = None
-        self.cancel_download_flag = False
+        self.cancel_flag = False
         self.key = None
 
     def do_startup(self):
@@ -181,7 +181,8 @@ class Application(Gtk.Application):
 
         self.back_refresh_button = self.builder.get_object("button1")
         self.error_download_label = self.builder.get_object("error_download_label")
-        self.spinner = self.builder.get_object("spinner1")
+        self.spinner1 = self.builder.get_object("spinner1")
+        self.spinner2 = self.builder.get_object("spinner2")
         self.error_sign_label = self.builder.get_object("error_signing_label")
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
@@ -213,13 +214,13 @@ class Application(Gtk.Application):
         self.window.show_all()
 
     def download_key(self, key):
-        if not self.cancel_download_flag:
+        if not self.cancel_flag:
             self.stack3.set_visible_child_name('page2')
             self.update_app_state(CONFIRM_KEY_STATE)
             self.update_back_refresh_button_icon()
 
-        self.spinner.stop()
-        self.cancel_download_flag = False
+        self.spinner1.stop()
+        self.cancel_flag = False
         return False
 
     def on_key_download(self, app, key):
@@ -228,7 +229,13 @@ class Application(Gtk.Application):
         GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
     def sign_key(self, key, uids):
-        pass
+        if not self.cancel_flag:
+            self.error_sign_label.set_markup("Key succesfully signed!")
+            self.error_sign_label.show()
+
+        self.spinner2.stop()
+        self.cancel_flag = False
+        return False
 
     def on_key_signing(self, app, key, uids):
         self.log.info("Signal emitted: key-signing: {}".format(key['id']))
@@ -332,7 +339,7 @@ class Application(Gtk.Application):
                     uidsLabel.set_markup(markup)
 
                     self.error_download_label.hide()
-                    self.spinner.start()
+                    self.spinner1.start()
 
                     self.stack3.set_visible_child_name('page1')
                     self.update_app_state(DOWNLOAD_KEY_STATE)
@@ -375,17 +382,21 @@ class Application(Gtk.Application):
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
-        self.cancel_download_flag = True
+        self.cancel_flag = True
         self.error_download_label.show()
-        self.spinner.stop()
+        self.spinner1.stop()
 
     def on_confirm_button_clicked(self, buttonObject, *args):
         self.log.debug("Confirm sign button clicked.")
+
+        self.error_sign_label.hide()
+        self.spinner2.start()
+
         self.stack3.set_visible_child_name('page3')
         self.update_app_state(SIGN_KEY_STATE)
         self.update_back_refresh_button_icon()
 
-        self.error_sign_label.hide()
+
         # FIXME user should be able to choose which UIDs he wants to sign
         uids_to_sign = self.key['uids']
         self.emit('key-signing', self.key, uids_to_sign)
