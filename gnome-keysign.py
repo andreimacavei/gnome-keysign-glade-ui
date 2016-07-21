@@ -64,6 +64,22 @@ _data = {
 }
 
 def get_secret_keys(pattern=None):
+    data = None
+    try:
+        import keysign.gpgmh as gpgmh
+    except ImportError as e:
+        print e
+        try:
+            import gpgmh
+        except ImportError as e:
+            print e
+            data = _data
+
+    if data is None:
+        keys = gpgmh.get_usable_secret_keys_dict()
+
+        data = { k['fpr']: k   for k in keys['keys']}
+
     return _data
 
 # The states that the app can have during run-time
