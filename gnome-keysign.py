@@ -70,6 +70,7 @@ PRESENT_KEY_STATE = 2
 ENTER_FPR_STATE = 3
 DOWNLOAD_KEY_STATE = 4
 CONFIRM_KEY_STATE = 5
+SIGN_KEY_STATE = 6
 
 def format_listbox_keydata(keydata):
     keyid = keydata['id']
@@ -239,8 +240,10 @@ class Application(Gtk.Application):
                     self.state = ENTER_FPR_STATE
                 elif page == 'page1':
                     self.state = DOWNLOAD_KEY_STATE
-                else:
+                elif page == 'page2':
                     self.state = CONFIRM_KEY_STATE
+                else:
+                    self.state = SIGN_KEY_STATE
             else:
                 self.state = UNKNOWN_STATE
                 self.log.error("Unknown application state!")
@@ -261,7 +264,7 @@ class Application(Gtk.Application):
             if state == SELECT_KEY_STATE or state == ENTER_FPR_STATE:
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-refresh",
                             Gtk.IconSize.BUTTON))
-            elif state in (PRESENT_KEY_STATE, DOWNLOAD_KEY_STATE, CONFIRM_KEY_STATE):
+            elif state in (PRESENT_KEY_STATE, DOWNLOAD_KEY_STATE, CONFIRM_KEY_STATE, SIGN_KEY_STATE):
                 self.back_refresh_button.set_image(Gtk.Image.new_from_icon_name("gtk-go-back",
                             Gtk.IconSize.BUTTON))
             else:
@@ -283,6 +286,9 @@ class Application(Gtk.Application):
         elif state == CONFIRM_KEY_STATE:
             self.stack3.set_visible_child_name('page0')
             self.update_app_state(ENTER_FPR_STATE)
+        elif state == SIGN_KEY_STATE:
+            self.stack3.set_visible_child_name('page2')
+            self.update_app_state(CONFIRM_KEY_STATE)
         else:
             self.log.error("Unknown application state!")
 
@@ -356,7 +362,9 @@ class Application(Gtk.Application):
 
     def on_confirm_button_clicked(self, buttonObject, *args):
         self.log.debug("Confirm sign button clicked.")
-        pass
+        self.stack3.set_visible_child_name('page3')
+        self.update_app_state(SIGN_KEY_STATE)
+        self.update_back_refresh_button_icon()
 
     def on_redo_button_clicked(self, buttonObject, *args):
         self.log.debug("Redo button clicked.")
