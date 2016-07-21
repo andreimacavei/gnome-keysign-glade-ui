@@ -80,7 +80,7 @@ def get_secret_keys(pattern=None):
 
         data = { k['fpr']: k   for k in keys['keys']}
 
-    return _data
+    return data
 
 # The states that the app can have during run-time
 UNKNOWN_STATE = 0
@@ -99,7 +99,8 @@ def format_listbox_keydata(keydata):
 
     result = "<b>{0}</b>\t\t\t{1}\n".format(keyid, nsigs)
     for uid in uids:
-        result += "{}\n".format(uid['uid'])
+        uidstr = uid['uid'].replace('<', '').replace('>', '')
+        result += "{}\n".format(uidstr)
     result += "\n"
     result += "<small>Expires {}</small>".format(expire)
 
@@ -108,7 +109,7 @@ def format_listbox_keydata(keydata):
 def format_details_keydata(keydata):
     result = ""
     for uid in keydata['uids']:
-        result += "{}\n".format(uid['uid'])
+        result += "{}\n".format(uid['uid'].replace('<', '').replace('>', ''))
 
     return result
 
@@ -260,7 +261,7 @@ class Application(Gtk.Application):
     def on_key_signing(self, app, key, uids):
         self.log.info("Signal emitted: key-signing: {}".format(key['id']))
 
-        uids_repr = '\n'.join([uid['uid'] for uid in uids])
+        uids_repr = '\n'.join([uid['uid'].replace('<', '').replace('>', '') for uid in uids])
         uids_signed_label = self.builder.get_object("uids_signed_label")
         uids_signed_label.set_markup(uids_repr)
 
@@ -351,12 +352,12 @@ class Application(Gtk.Application):
 
                 if val['fpr'] == cleaned_fpr:
                     keyIdsLabel = self.builder.get_object("key_ids_label")
-                    keyIdsLabel.set_markup(key['id'])
+                    keyIdsLabel.set_markup(key['id'].replace('<', '').replace('>', ''))
 
                     uidsLabel = self.builder.get_object("uids_label")
                     markup = ""
                     for uid in key['uids']:
-                        markup += uid['uid'] + "\n"
+                        markup += uid['uid'].replace('<', '').replace('>', '') + "\n"
                     uidsLabel.set_markup(markup)
 
                     self.error_download_label.hide()
@@ -384,7 +385,7 @@ class Application(Gtk.Application):
         key = listBoxRowObject.data
 
         keyidLabel = self.builder.get_object("keyidLabel")
-        keyid_str = "{0}".format(key['id'])
+        keyid_str = "{0}".format(key['id'].replace('<', '').replace('>', ''))
         keyidLabel.set_markup(keyid_str)
 
         uidsLabel = self.builder.get_object("uidsLabel")
