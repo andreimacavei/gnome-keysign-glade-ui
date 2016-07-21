@@ -17,7 +17,7 @@ from gi.repository import (
     Gtk
 )
 
-data = {
+_data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
               'fpr':'BEFDD433DCF8956D0D36011B4B032D3DED8312A2',
               'uids':[
@@ -62,6 +62,9 @@ data = {
               'nsigs':3
              },
 }
+
+def get_secret_keys(pattern=None):
+    return _data
 
 # The states that the app can have during run-time
 UNKNOWN_STATE = 0
@@ -186,7 +189,8 @@ class Application(Gtk.Application):
         self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
         listBox = self.builder.get_object('listbox1')
-        for keydata in data.values():
+        keys = get_secret_keys()
+        for keydata in keys.values():
             listBox.add(ListBoxRowWithKeyData(keydata))
 
         listBox.connect('row-activated', self.on_row_activated, self.builder)
@@ -325,8 +329,9 @@ class Application(Gtk.Application):
         self.log.debug("Gtk.Entry text changed: {}".format(cleaned_fpr))
 
         if is_valid_fingerprint(cleaned_fpr):
-            for keyid,val in data.items():
-                key = data[keyid]
+            keys = get_secret_keys()
+            for keyid,val in keys.items():
+                key = keys[keyid]
 
                 if val['fpr'] == cleaned_fpr:
                     keyIdsLabel = self.builder.get_object("key_ids_label")
