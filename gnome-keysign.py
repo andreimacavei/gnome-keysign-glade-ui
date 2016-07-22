@@ -150,7 +150,7 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 class Application(Gtk.Application):
 
     __gsignals__ = {
-        'key-download': (GObject.SIGNAL_RUN_LAST, None,
+        'valid-fingerprint': (GObject.SIGNAL_RUN_LAST, None,
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,)),
@@ -180,7 +180,7 @@ class Application(Gtk.Application):
         self.window = None
         self.log = logging.getLogger()
 
-        self.connect('key-download', self.on_key_download)
+        self.connect('valid-fingerprint', self.on_valid_fingerprint)
         self.connect('key-signing', self.on_key_signing)
 
         self.state = None
@@ -243,8 +243,8 @@ class Application(Gtk.Application):
         self.cancel_flag = False
         return False
 
-    def on_key_download(self, app, key):
-        self.log.info("Signal emitted: key-download: {}".format(key['id']))
+    def on_valid_fingerprint(self, app, key):
+        self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
         download_time = 3
         GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
@@ -367,7 +367,7 @@ class Application(Gtk.Application):
                     self.update_back_refresh_button_icon()
 
                     self.key = key
-                    self.emit('key-download', key)
+                    self.emit('valid-fingerprint', key)
                     break
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
