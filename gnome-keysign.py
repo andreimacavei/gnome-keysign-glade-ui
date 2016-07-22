@@ -154,7 +154,7 @@ class Application(Gtk.Application):
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,)),
-        'key-signing': (GObject.SIGNAL_RUN_LAST, None,
+        'sign-key-confirmed': (GObject.SIGNAL_RUN_LAST, None,
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,GObject.TYPE_PYOBJECT)),
@@ -181,7 +181,7 @@ class Application(Gtk.Application):
         self.log = logging.getLogger()
 
         self.connect('valid-fingerprint', self.on_valid_fingerprint)
-        self.connect('key-signing', self.on_key_signing)
+        self.connect('sign-key-confirmed', self.on_sign_key_confirmed)
 
         self.state = None
         self.last_state = None
@@ -257,8 +257,8 @@ class Application(Gtk.Application):
         self.cancel_flag = False
         return False
 
-    def on_key_signing(self, app, key, uids):
-        self.log.info("Signal emitted: key-signing: {}".format(key['id']))
+    def on_sign_key_confirmed(self, app, key, uids):
+        self.log.info("Signal emitted: sign-key-confirmed: {}".format(key['id']))
 
         uids_repr = '\n'.join([uid['uid'] for uid in uids])
         uids_signed_label = self.builder.get_object("uids_signed_label")
@@ -420,7 +420,7 @@ class Application(Gtk.Application):
 
         # FIXME user should be able to choose which UIDs he wants to sign
         uids_to_sign = self.key['uids']
-        self.emit('key-signing', self.key, uids_to_sign)
+        self.emit('sign-key-confirmed', self.key, uids_to_sign)
 
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel signing button clicked.")
