@@ -204,13 +204,13 @@ class Application(Gtk.Application):
         self.spinner2 = self.builder.get_object("spinner2")
         self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
-        listBox = self.builder.get_object('listbox1')
+        self.listbox = self.builder.get_object('listbox1')
         keys = get_secret_keys()
         for keydata in keys.values():
-            listBox.add(ListBoxRowWithKeyData(keydata))
+            self.listbox.add(ListBoxRowWithKeyData(keydata))
 
-        listBox.connect('row-activated', self.on_row_activated, self.builder)
-        listBox.connect('row-selected', self.on_row_selected, self.builder)
+        self.listbox.connect('row-activated', self.on_row_activated, self.builder)
+        self.listbox.connect('row-selected', self.on_row_selected, self.builder)
 
         # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
@@ -232,6 +232,16 @@ class Application(Gtk.Application):
 
         self.add_window(self.window)
         self.window.show_all()
+
+    def update_key_list(self):
+        #FIXME do not remove rows, but update data
+        for listrow in self.listbox:
+            self.listbox.remove(listrow)
+
+        keys = get_secret_keys()
+        for keydata in keys.values():
+            self.listbox.add(ListBoxRowWithKeyData(keydata))
+        self.listbox.show_all()
 
     def download_key(self, key):
         if not self.cancel_flag:
@@ -321,6 +331,7 @@ class Application(Gtk.Application):
 
         if state == SELECT_KEY_STATE:
             self.update_app_state(SELECT_KEY_STATE)
+            self.update_key_list()
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
             self.update_app_state(SELECT_KEY_STATE)
