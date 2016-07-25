@@ -123,7 +123,12 @@
       <object class="GtkBox" id="box50">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="margin_left">20</property>
+        <property name="margin_right">20</property>
+        <property name="margin_top">10</property>
+        <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
+        <property name="spacing">6</property>
         <child>
           <object class="GtkLabel" id="label10">
             <property name="visible">True</property>
@@ -134,7 +139,7 @@
             </attributes>
           </object>
           <packing>
-            <property name="expand">True</property>
+            <property name="expand">False</property>
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
@@ -155,7 +160,8 @@
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Key download was interrupted!</property>
             <attributes>
-              <attribute name="foreground" value="#cccc00000000"/>
+              <attribute name="weight" value="heavy"/>
+              <attribute name="foreground" value="#000000000000"/>
             </attributes>
           </object>
           <packing>
@@ -340,6 +346,10 @@ This will generate an email that must be sent in order to complete the signing p
       <object class="GtkBox" id="box70">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="margin_left">20</property>
+        <property name="margin_right">20</property>
+        <property name="margin_top">10</property>
+        <property name="margin_bottom">10</property>
         <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>

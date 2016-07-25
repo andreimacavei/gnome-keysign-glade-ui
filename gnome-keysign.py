@@ -151,11 +151,11 @@ class ListBoxRowWithKeyData(Gtk.ListBoxRow):
 class Application(Gtk.Application):
 
     __gsignals__ = {
-        'key-download': (GObject.SIGNAL_RUN_LAST, None,
+        'valid-fingerprint': (GObject.SIGNAL_RUN_LAST, None,
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,)),
-        'key-signing': (GObject.SIGNAL_RUN_LAST, None,
+        'sign-key-confirmed': (GObject.SIGNAL_RUN_LAST, None,
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,GObject.TYPE_PYOBJECT)),
@@ -181,8 +181,8 @@ class Application(Gtk.Application):
         self.window = None
         self.log = logging.getLogger()
 
-        self.connect('key-download', self.on_key_download)
-        self.connect('key-signing', self.on_key_signing)
+        self.connect('valid-fingerprint', self.on_valid_fingerprint)
+        self.connect('sign-key-confirmed', self.on_sign_key_confirmed)
 
         self.state = None
         self.last_state = None
@@ -205,13 +205,13 @@ class Application(Gtk.Application):
         self.spinner2 = self.builder.get_object("spinner2")
         self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
-        listBox = self.builder.get_object('listbox1')
+        self.listbox = self.builder.get_object('listbox1')
         keys = get_secret_keys()
         for keydata in keys.values():
-            listBox.add(ListBoxRowWithKeyData(keydata))
+            self.listbox.add(ListBoxRowWithKeyData(keydata))
 
-        listBox.connect('row-activated', self.on_row_activated, self.builder)
-        listBox.connect('row-selected', self.on_row_selected, self.builder)
+        self.listbox.connect('row-activated', self.on_row_activated, self.builder)
+        self.listbox.connect('row-selected', self.on_row_selected, self.builder)
 
         # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
@@ -234,6 +234,16 @@ class Application(Gtk.Application):
         self.add_window(self.window)
         self.window.show_all()
 
+    def update_key_list(self):
+        #FIXME do not remove rows, but update data
+        for listrow in self.listbox:
+            self.listbox.remove(listrow)
+
+        keys = get_secret_keys()
+        for keydata in keys.values():
+            self.listbox.add(ListBoxRowWithKeyData(keydata))
+        self.listbox.show_all()
+
     def download_key(self, key):
         if not self.cancel_flag:
             self.stack3.set_visible_child_name('page2')
@@ -244,8 +254,8 @@ class Application(Gtk.Application):
         self.cancel_flag = False
         return False
 
-    def on_key_download(self, app, key):
-        self.log.info("Signal emitted: key-download: {}".format(key['id']))
+    def on_valid_fingerprint(self, app, key):
+        self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
         download_time = 3
         GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
@@ -258,8 +268,8 @@ class Application(Gtk.Application):
         self.cancel_flag = False
         return False
 
-    def on_key_signing(self, app, key, uids):
-        self.log.info("Signal emitted: key-signing: {}".format(key['id']))
+    def on_sign_key_confirmed(self, app, key, uids):
+        self.log.info("Signal emitted: sign-key-confirmed: {}".format(key['id']))
 
         uids_repr = '\n'.join([uid['uid'].replace('<', '').replace('>', '') for uid in uids])
         uids_signed_label = self.builder.get_object("uids_signed_label")
@@ -322,6 +332,7 @@ class Application(Gtk.Application):
 
         if state == SELECT_KEY_STATE:
             self.update_app_state(SELECT_KEY_STATE)
+            self.update_key_list()
         elif state == PRESENT_KEY_STATE:
             self.stack2.set_visible_child_name('page0')
             self.update_app_state(SELECT_KEY_STATE)
@@ -368,7 +379,7 @@ class Application(Gtk.Application):
                     self.update_back_refresh_button_icon()
 
                     self.key = key
-                    self.emit('key-download', key)
+                    self.emit('valid-fingerprint', key)
                     break
             else:
                 builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
@@ -421,7 +432,7 @@ class Application(Gtk.Application):
 
         # FIXME user should be able to choose which UIDs he wants to sign
         uids_to_sign = self.key['uids']
-        self.emit('key-signing', self.key, uids_to_sign)
+        self.emit('sign-key-confirmed', self.key, uids_to_sign)
 
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel signing button clicked.")
