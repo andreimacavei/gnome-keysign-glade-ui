@@ -282,14 +282,7 @@
                     <property name="label_xalign">0</property>
                     <property name="shadow_type">none</property>
                     <child>
-                      <object class="GtkAlignment" id="alignment1">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="left_padding">12</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
+                      <placeholder/>
                     </child>
                     <child type="label">
                       <object class="GtkLabel" id="label9">

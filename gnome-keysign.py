@@ -17,6 +17,8 @@ from gi.repository import (
     Gtk
 )
 
+from qrcode import QRCodeWidget
+
 _data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
               'fpr':'BEFDD433DCF8956D0D36011B4B032D3DED8312A2',
@@ -197,6 +199,10 @@ class Application(Gtk.Application):
         self.stack.add_titled(self.stack2, 'stack2', 'Send')
         self.stack.add_titled(self.stack3, 'stack3', 'Receive')
         self.stack.show_all()
+
+        self.qrcode = QRCodeWidget()
+        qr_frame = self.builder.get_object("frame1")
+        qr_frame.add(self.qrcode)
 
         self.back_refresh_button = self.builder.get_object("button1")
         self.error_download_label = self.builder.get_object("error_download_label")
@@ -405,6 +411,9 @@ class Application(Gtk.Application):
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
         keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
+
+        self.qrcode.set_data(key['fpr'][-8:])
+        self.qrcode.draw_qrcode()
 
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
