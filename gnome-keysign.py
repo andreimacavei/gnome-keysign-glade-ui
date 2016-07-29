@@ -200,10 +200,6 @@ class Application(Gtk.Application):
         self.stack.add_titled(self.stack3, 'stack3', 'Receive')
         self.stack.show_all()
 
-        self.qrcode = QRCodeWidget()
-        qr_frame = self.builder.get_object("frame1")
-        qr_frame.add(self.qrcode)
-
         self.qrscanner = QRScannerWidget()
         scan_frame = self.builder.get_object("scan_frame")
         scan_frame.add(self.qrscanner)
@@ -416,8 +412,15 @@ class Application(Gtk.Application):
         keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
 
-        self.qrcode.set_data(key['fpr'][-8:])
-        self.qrcode.draw_qrcode()
+
+        qr_frame = self.builder.get_object("qrcode_frame")
+        for child in qr_frame.get_children():
+            if type(child) == QRCodeWidget:
+                qr_frame.remove(child)
+
+        qr_data = key['fpr'][-8:]
+        qr_frame.add(QRCodeWidget(qr_data))
+        qr_frame.show_all()
 
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
