@@ -8,4 +8,3 @@ run:
 
 clean:
 	./flatpack-build-clean.sh
-	rm *~ *.pyc
