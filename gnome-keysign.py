@@ -187,9 +187,9 @@ class Application(Gtk.Application):
 
         self.state = None
         self.last_state = None
-        self.cancel_flag = False
         self.key = None
         self.download_id = 0
+        self.sign_id = 0
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -256,6 +256,7 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
         self.spinner1.stop()
+        self.download_id = 0
         return False
 
     def on_valid_fingerprint(self, app, key):
@@ -264,12 +265,11 @@ class Application(Gtk.Application):
         self.download_id = GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
     def sign_key(self, key, uids):
-        if not self.cancel_flag:
-            self.succes_fail_signing_label.set_markup("Key succesfully signed!")
-            self.succes_fail_signing_label.show()
+        self.succes_fail_signing_label.set_markup("Key succesfully signed!")
+        self.succes_fail_signing_label.show()
 
         self.spinner2.stop()
-        self.cancel_flag = False
+        self.sign_id = 0
         return False
 
     def on_sign_key_confirmed(self, app, key, uids):
@@ -280,7 +280,7 @@ class Application(Gtk.Application):
         uids_signed_label.set_markup(uids_repr)
 
         signing_time = 2
-        GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
+        self.sign_id = GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
 
     def get_app_state(self):
         return self.state
@@ -453,9 +453,12 @@ class Application(Gtk.Application):
 
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel signing button clicked.")
-        self.cancel_flag = True
-        self.succes_fail_signing_label.set_markup('Key signing was interrupted!')
-        self.succes_fail_signing_label.show()
+        if self.sign_id != 0:
+            GLib.source_remove(self.sign_id)
+            self.succes_fail_signing_label.set_markup('Key signing was interrupted!')
+            self.succes_fail_signing_label.show()
+            self.sign_id = 0
+
         self.spinner2.stop()
 
     def on_redo_button_clicked(self, buttonObject, *args):
