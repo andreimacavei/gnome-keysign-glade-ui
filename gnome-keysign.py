@@ -189,6 +189,7 @@ class Application(Gtk.Application):
         self.last_state = None
         self.cancel_flag = False
         self.key = None
+        self.download_id = 0
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -250,19 +251,17 @@ class Application(Gtk.Application):
         self.listbox.show_all()
 
     def download_key(self, key):
-        if not self.cancel_flag:
-            self.stack3.set_visible_child_name('page2')
-            self.update_app_state(CONFIRM_KEY_STATE)
-            self.update_back_refresh_button_icon()
+        self.stack3.set_visible_child_name('page2')
+        self.update_app_state(CONFIRM_KEY_STATE)
+        self.update_back_refresh_button_icon()
 
         self.spinner1.stop()
-        self.cancel_flag = False
         return False
 
     def on_valid_fingerprint(self, app, key):
         self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
         download_time = 3
-        GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
+        self.download_id = GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
     def sign_key(self, key, uids):
         if not self.cancel_flag:
@@ -431,8 +430,11 @@ class Application(Gtk.Application):
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
-        self.cancel_flag = True
-        self.error_download_label.show()
+        if self.download_id != 0:
+            GLib.source_remove(self.download_id)
+            self.error_download_label.show()
+            self.download_id = 0
+
         self.spinner1.stop()
 
     def on_confirm_button_clicked(self, buttonObject, *args):
