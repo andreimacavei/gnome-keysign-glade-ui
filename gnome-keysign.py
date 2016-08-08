@@ -287,6 +287,12 @@ class Application(Gtk.Application):
     def update_app_state(self, new_state=None):
         self.last_state = self.state
 
+        if self.last_state == DOWNLOAD_KEY_STATE:
+            # Reset download timer
+            if self.timeout_id != 0:
+                GLib.source_remove(self.timeout_id)
+                self.timeout_id = 0
+
         if new_state:
             self.state = new_state
         else:
