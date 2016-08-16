@@ -17,6 +17,8 @@ from gi.repository import (
     Gtk
 )
 
+from qrcode import QRCodeWidget, QRScannerWidget
+
 _data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
               'fpr':'BEFDD433DCF8956D0D36011B4B032D3DED8312A2',
@@ -186,8 +188,8 @@ class Application(Gtk.Application):
 
         self.state = None
         self.last_state = None
-        self.cancel_flag = False
         self.key = None
+        self.timeout_id = 0
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -198,6 +200,10 @@ class Application(Gtk.Application):
         self.stack.add_titled(self.stack2, 'stack2', 'Send')
         self.stack.add_titled(self.stack3, 'stack3', 'Receive')
         self.stack.show_all()
+
+        self.qrscanner = QRScannerWidget()
+        scan_frame = self.builder.get_object("scan_frame")
+        scan_frame.add(self.qrscanner)
 
         self.back_refresh_button = self.builder.get_object("button1")
         self.error_download_label = self.builder.get_object("error_download_label")
@@ -245,27 +251,25 @@ class Application(Gtk.Application):
         self.listbox.show_all()
 
     def download_key(self, key):
-        if not self.cancel_flag:
-            self.stack3.set_visible_child_name('page2')
-            self.update_app_state(CONFIRM_KEY_STATE)
-            self.update_back_refresh_button_icon()
+        self.stack3.set_visible_child_name('page2')
+        self.update_app_state(CONFIRM_KEY_STATE)
+        self.update_back_refresh_button_icon()
 
         self.spinner1.stop()
-        self.cancel_flag = False
+        self.timeout_id = 0
         return False
 
     def on_valid_fingerprint(self, app, key):
         self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
         download_time = 3
-        GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
+        self.timeout_id = GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
     def sign_key(self, key, uids):
-        if not self.cancel_flag:
-            self.succes_fail_signing_label.set_markup("Key succesfully signed!")
-            self.succes_fail_signing_label.show()
+        self.succes_fail_signing_label.set_markup("Key succesfully signed!")
+        self.succes_fail_signing_label.show()
 
         self.spinner2.stop()
-        self.cancel_flag = False
+        self.timeout_id = 0
         return False
 
     def on_sign_key_confirmed(self, app, key, uids):
@@ -276,13 +280,19 @@ class Application(Gtk.Application):
         uids_signed_label.set_markup(uids_repr)
 
         signing_time = 2
-        GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
+        self.timeout_id = GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
 
     def get_app_state(self):
         return self.state
 
     def update_app_state(self, new_state=None):
         self.last_state = self.state
+
+        if self.last_state == DOWNLOAD_KEY_STATE:
+            # Reset download timer
+            if self.timeout_id != 0:
+                GLib.source_remove(self.timeout_id)
+                self.timeout_id = 0
 
         if new_state:
             self.state = new_state
@@ -407,6 +417,16 @@ class Application(Gtk.Application):
         keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
 
+
+        qr_frame = self.builder.get_object("qrcode_frame")
+        for child in qr_frame.get_children():
+            if type(child) == QRCodeWidget:
+                qr_frame.remove(child)
+
+        qr_data = key['fpr'][-8:]
+        qr_frame.add(QRCodeWidget(qr_data))
+        qr_frame.show_all()
+
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
         self.update_back_refresh_button_icon()
@@ -416,8 +436,11 @@ class Application(Gtk.Application):
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
-        self.cancel_flag = True
-        self.error_download_label.show()
+        if self.timeout_id != 0:
+            GLib.source_remove(self.timeout_id)
+            self.error_download_label.show()
+            self.timeout_id = 0
+
         self.spinner1.stop()
 
     def on_confirm_button_clicked(self, buttonObject, *args):
@@ -436,9 +459,12 @@ class Application(Gtk.Application):
 
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel signing button clicked.")
-        self.cancel_flag = True
-        self.succes_fail_signing_label.set_markup('Key signing was interrupted!')
-        self.succes_fail_signing_label.show()
+        if self.timeout_id != 0:
+            GLib.source_remove(self.timeout_id)
+            self.succes_fail_signing_label.set_markup('Key signing was interrupted!')
+            self.succes_fail_signing_label.show()
+            self.timeout_id = 0
+
         self.spinner2.stop()
 
     def on_redo_button_clicked(self, buttonObject, *args):
