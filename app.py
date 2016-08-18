@@ -7,8 +7,11 @@ import sys
 import time
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
 
+from urlparse import urlparse, parse_qs
+
 import gi
 gi.require_version('Gtk', '3.0')
+gi.require_version('Gst', '1.0')
 
 from gi.repository import (
     GLib,
@@ -128,6 +131,15 @@ def is_valid_fingerprint(fpr):
         return False
 
     return True
+
+
+def verify_fingerprint_from_dict(fpr):
+    keys = get_secret_keys()
+    for keyid,val in keys.items():
+        key = keys[keyid]
+        if val['fpr'] == fpr:
+            return True
+    return False
 
 
 def format_fpr(fpr):
@@ -440,8 +452,30 @@ class Application(Gtk.Application):
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
 
-    def parse_barcode(self, barcode):
-        pass
+    def parse_barcode(self, barcode_string):
+        """Parses information contained in a barcode
+
+        It returns a dict with the parsed attributes.
+        We expect the dict to contain at least a 'fingerprint'
+        entry. Others might be added in the future.
+        """
+        # The string, currently, is of the form
+        # openpgp4fpr:foobar?baz=qux#frag=val
+        # Which urlparse handles perfectly fine.
+        p = urlparse(barcode_string)
+        self.log.debug("Parsed %r into %r", barcode_string, p)
+        fpr = p.path
+        query = parse_qs(p.query)
+        fragments = parse_qs(p.fragment)
+        rest = {}
+        rest.update(query)
+        rest.update(fragments)
+        # We should probably ensure that we have only one
+        # item for each parameter and flatten them accordingly.
+        rest['fingerprint'] = fpr
+
+        self.log.debug('Parsed barcode into %r', rest)
+        return rest
 
     def on_barcode(self, sender, barcode, message, image):
         '''This is connected to the "barcode" signal.
@@ -462,7 +496,26 @@ class Application(Gtk.Application):
         '''
         self.log.info("Barcode signal %r %r", barcode, message)
         parsed = self.parse_barcode(barcode)
-        pass
+        fingerprint = parsed['fingerprint']
+        if not fingerprint:
+            self.log.error("Expected fingerprint in %r to evaluate to True, "
+                           "but is %r", parsed, fingerprint)
+        else:
+            if verify_fingerprint_from_dict(fingerprint):
+                # This is the easiest way to advance to next page
+                entry = self.builder.get_object("entry1")
+                entry.set_text(fingerprint)
+                # entry.emit('changed', entryObject)
+            else:
+                builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
+                dialog = builder.get_object('invalid_dialog')
+                dialog.set_transient_for(self.window)
+                response = dialog.run()
+                if response == Gtk.ResponseType.CLOSE:
+                    self.log.debug("WARN dialog closed by clicking CLOSE button")
+                    pass
+
+                dialog.destroy()
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
