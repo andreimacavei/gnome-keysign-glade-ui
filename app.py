@@ -14,10 +14,14 @@ from gi.repository import (
     GLib,
     GObject,
     Gio,
-    Gtk
+    Gtk,
+    Gst
 )
 
 from qrwidgets import QRCodeWidget, QRScannerWidget
+
+Gst.init()
+
 
 _data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
@@ -203,6 +207,7 @@ class Application(Gtk.Application):
         self.qrscanner = QRScannerWidget()
         scan_frame = self.builder.get_object("scan_frame")
         scan_frame.add(self.qrscanner)
+        scan_frame.show_all()
 
         self.back_refresh_button = self.builder.get_object("button1")
         self.error_download_label = self.builder.get_object("error_download_label")

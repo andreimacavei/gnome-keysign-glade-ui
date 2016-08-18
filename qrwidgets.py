@@ -19,6 +19,7 @@ import logging
 from gi.repository import Gtk
 
 from qr_code import QRImage
+from barcode_reader import BarcodeReaderGTK
 
 log = logging.getLogger(__name__)
 
@@ -44,7 +45,5 @@ class QRScannerWidget(Gtk.Box):
         super(QRScannerWidget, self).__init__()
         self.set_orientation(Gtk.Orientation.VERTICAL)
 
-        label = Gtk.Label()
-        label.set_markup('<span size="10000">Camera feed</span>')
-
-        self.pack_start(label, True, True, 0)
+        self.reader = BarcodeReaderGTK()
+        self.pack_start(self.reader, True, True, 0)
