@@ -209,6 +209,8 @@ class Application(Gtk.Application):
         scan_frame.add(self.qrscanner)
         scan_frame.show_all()
 
+        self.qrscanner.reader.connect('barcode', self.on_barcode)
+
         self.back_refresh_button = self.builder.get_object("button1")
         self.error_download_label = self.builder.get_object("error_download_label")
         self.spinner1 = self.builder.get_object("spinner1")
@@ -437,6 +439,30 @@ class Application(Gtk.Application):
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+
+    def parse_barcode(self, barcode):
+        pass
+
+    def on_barcode(self, sender, barcode, message, image):
+        '''This is connected to the "barcode" signal.
+
+        The function will advance the application if a reasonable
+        barcode has been provided.
+
+        Sender is the emitter of the signal and should be the scanning
+        widget.
+
+        Barcode is the actual barcode that got decoded.
+
+        The message argument is a GStreamer message that created
+        the barcode.
+
+        When image is set, it should be the frame as pixbuf that
+        caused a barcode to be decoded.
+        '''
+        self.log.info("Barcode signal %r %r", barcode, message)
+        parsed = self.parse_barcode(barcode)
+        pass
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")

@@ -46,4 +46,5 @@ class QRScannerWidget(Gtk.Box):
         self.set_orientation(Gtk.Orientation.VERTICAL)
 
         self.reader = BarcodeReaderGTK()
+        self.reader.set_size_request(150,150)
         self.pack_start(self.reader, True, True, 0)
