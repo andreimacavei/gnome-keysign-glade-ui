@@ -17,74 +17,17 @@ from gi.repository import (
     Gtk
 )
 
+from datetime import date, datetime
 from qrcode import QRCodeWidget, QRScannerWidget
 
-_data = {
-    'key1' : {'id':'2048R/ED8312A2 2014-04-08',
-              'fpr':'BEFDD433DCF8956D0D36011B4B032D3DED8312A2',
-              'uids':[
-                    {'uid':'John Doe john.doe@test.com',
-                     'sigs':['ED8312A2', '6FB8DCCE']
-                    },
-                    {'uid':'John Foo (Test Key) john.foe@test.com',
-                     'sigs':['ED8312A2']
-                    }
-                    ],
-              'expiry':'2016-12-12',
-              'nsigs':3
-             },
-    'key2' : {'id':'2048R/D32DFCFB 2015-08-20',
-              'fpr':'B870D356F7ECD46CF2CEDF933BF372D3D32DFCFB',
-              'uids':[
-                    {'uid':'Foo Bar foo.bar@test.com',
-                     'sigs':['D32DFCFB','6FB8DCCE']
-                    }
-                    ],
-              'expiry':'2016-05-20',
-              'nsigs':2
-             },
-    'key3' : {'id':'2048R/ED8312A2 2010-04-08',
-              'fpr':'6011B4B032D3DED8312A2BEFDD433DCF8956D0D3',
-              'uids':[
-                    {'uid':'John Who john.who@test.com',
-                     'sigs':['ED8312A2']
-                    }
-                    ],
-              'expiry':'2016-07-14',
-              'nsigs':1
-             },
-    'key4' : {'id':'2048R/D32DFCFB 2013-01-01',
-              'fpr':'CEDF933BF372D3D32DFCFBB870D356F7ECD46CF2',
-              'uids':[
-                    {'uid':'Educated Foo edu.foo@test.com',
-                     'sigs':['D32DFCFB','6FB8DCCE', '8956D0D3']
-                    }
-                    ],
-              'expiry':'2020-05-05',
-              'nsigs':3
-             },
-}
+try:
+    import keysign.gpgmh
+except ImportError as e:
+    print e
+    import gpgmh
 
-def get_secret_keys(pattern=None):
-    data = None
-    try:
-        import keysign.gpgmh as gpgmh
-    except ImportError as e:
-        print e
-        try:
-            import gpgmh
-        except ImportError as e:
-            print e
-            data = _data
 
-    if data is None:
-        keys = gpgmh.get_usable_secret_keys_dict()
-
-        data = { k['fpr']: k   for k in keys['keys']}
-
-    return data
-
-# The states that the app can have during run-time
+# The states that the app can have during runtime
 UNKNOWN_STATE = 0
 SELECT_KEY_STATE = 1
 PRESENT_KEY_STATE = 2
@@ -93,26 +36,39 @@ DOWNLOAD_KEY_STATE = 4
 CONFIRM_KEY_STATE = 5
 SIGN_KEY_STATE = 6
 
-def format_listbox_keydata(keydata):
-    keyid = keydata['id']
-    uids = keydata['uids']
-    expire = keydata['expiry']
-    nsigs = keydata['nsigs']
+#FIXME: remove the temporary keyword args after updating Key class
+#with length and creation_time fields
+def format_key_header(fpr, length='2048', creation_time=None):
+    if creation_time == None:
+        creation_time = datetime.strptime('01011970', "%d%m%Y").date()
+    try:
+        creation = date.fromtimestamp(float(creation_time))
+    except TypeError as e:
+        # This might be the case when the creation_time is already a timedate
+        creation = creation_time
 
-    result = "<b>{0}</b>\t\t\t{1}\n".format(keyid, nsigs)
-    for uid in uids:
-        uidstr = uid['uid'].replace('<', '').replace('>', '')
-        result += "{}\n".format(uidstr)
-    result += "\n"
-    result += "<small>Expires {}</small>".format(expire)
+    key_header = ("{}/{} {}".format(length, fpr[-8:], creation))
+    return key_header
+
+def format_uidslist(uidslist):
+    result = ""
+    for uid in uidslist:
+        uidstr = str(uid).replace('<', '').replace('>', '')
+        result += ("{}\n".format(uidstr))
 
     return result
 
-def format_details_keydata(keydata):
-    result = ""
-    for uid in keydata['uids']:
-        result += "{}\n".format(uid['uid'].replace('<', '').replace('>', ''))
+def format_listbox_key(key):
+    key_header = format_key_header(key.fingerprint)
+    nsigs = 1 #FIXME: do we need this propr?
 
+    result = ("{}\t\t\t{}\n".format(key_header, nsigs))
+    result += format_uidslist(key.uidslist)
+
+    if key.expiry:
+        result += ("\n<small>Expires {}</small>".format(date.fromtimestamp(float(key.expiry))))
+    else:
+        result += ("\n<small>No expiration date</small>")
     return result
 
 def clean_fingerprint(fpr):
@@ -127,7 +83,7 @@ def is_valid_fingerprint(fpr):
     return True
 
 
-def format_fpr(fpr):
+def format_fingerprint(fpr):
     res_fpr = ""
     for i in range(0, len(fpr), 4):
         res_fpr += fpr[i:i+4]
@@ -139,14 +95,14 @@ def format_fpr(fpr):
     return res_fpr
 
 
-class ListBoxRowWithKeyData(Gtk.ListBoxRow):
+class ListBoxRowWithKey(Gtk.ListBoxRow):
 
-    def __init__(self, keydata):
+    def __init__(self, key):
         super(Gtk.ListBoxRow, self).__init__()
-        self.data = keydata
+        self.key = key
 
         label = Gtk.Label()
-        label.set_markup(format_listbox_keydata(self.data))
+        label.set_markup(format_listbox_key(self.key))
         self.add(label)
 
 
@@ -212,9 +168,9 @@ class Application(Gtk.Application):
         self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
         self.listbox = self.builder.get_object('listbox1')
-        keys = get_secret_keys()
-        for keydata in keys.values():
-            self.listbox.add(ListBoxRowWithKeyData(keydata))
+        keys = gpgmh.get_usable_secret_keys()
+        for key in keys:
+            self.listbox.add(ListBoxRowWithKey(key))
 
         self.listbox.connect('row-activated', self.on_row_activated, self.builder)
         self.listbox.connect('row-selected', self.on_row_selected, self.builder)
@@ -245,9 +201,9 @@ class Application(Gtk.Application):
         for listrow in self.listbox:
             self.listbox.remove(listrow)
 
-        keys = get_secret_keys()
-        for keydata in keys.values():
-            self.listbox.add(ListBoxRowWithKeyData(keydata))
+        keys = gpgmh.get_usable_secret_keys()
+        for key in keys:
+            self.listbox.add(ListBoxRowWithKey(key))
         self.listbox.show_all()
 
     def download_key(self, key):
@@ -260,11 +216,11 @@ class Application(Gtk.Application):
         return False
 
     def on_valid_fingerprint(self, app, key):
-        self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
+        self.log.info("Signal emitted: valid-fingerprint: {}".format(key.fingerprint))
         download_time = 3
         self.timeout_id = GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
 
-    def sign_key(self, key, uids):
+    def sign_key(self, key, uidslist):
         self.succes_fail_signing_label.set_markup("Key succesfully signed!")
         self.succes_fail_signing_label.show()
 
@@ -272,15 +228,15 @@ class Application(Gtk.Application):
         self.timeout_id = 0
         return False
 
-    def on_sign_key_confirmed(self, app, key, uids):
-        self.log.info("Signal emitted: sign-key-confirmed: {}".format(key['id']))
+    def on_sign_key_confirmed(self, app, key, uidslist):
+        self.log.info("Signal emitted: sign-key-confirmed: {}".format(key))
 
-        uids_repr = '\n'.join([uid['uid'].replace('<', '').replace('>', '') for uid in uids])
+        uids_repr = format_uidslist(uidslist)
         uids_signed_label = self.builder.get_object("uids_signed_label")
         uids_signed_label.set_markup(uids_repr)
 
         signing_time = 2
-        self.timeout_id = GLib.timeout_add_seconds(signing_time, self.sign_key, key, uids, priority=GLib.PRIORITY_DEFAULT)
+        self.timeout_id = GLib.timeout_add_seconds(signing_time, self.sign_key, key, uidslist, priority=GLib.PRIORITY_DEFAULT)
 
     def get_app_state(self):
         return self.state
@@ -367,18 +323,15 @@ class Application(Gtk.Application):
         self.log.debug("Gtk.Entry text changed: {}".format(cleaned_fpr))
 
         if is_valid_fingerprint(cleaned_fpr):
-            keys = get_secret_keys()
-            for keyid,val in keys.items():
-                key = keys[keyid]
+            keys = gpgmh.get_usable_secret_keys()
+            for key in keys:
 
-                if val['fpr'] == cleaned_fpr:
+                if key.fingerprint == cleaned_fpr:
                     keyIdsLabel = self.builder.get_object("key_ids_label")
-                    keyIdsLabel.set_markup(key['id'].replace('<', '').replace('>', ''))
+                    keyIdsLabel.set_markup(format_key_header(key.fingerprint))
 
                     uidsLabel = self.builder.get_object("uids_label")
-                    markup = ""
-                    for uid in key['uids']:
-                        markup += uid['uid'].replace('<', '').replace('>', '') + "\n"
+                    markup = format_uidslist(key.uidslist)
                     uidsLabel.set_markup(markup)
 
                     self.error_download_label.hide()
@@ -403,16 +356,16 @@ class Application(Gtk.Application):
                 dialog.destroy()
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-        key = listBoxRowObject.data
+        key = listBoxRowObject.key
 
         keyidLabel = self.builder.get_object("keyidLabel")
-        keyid_str = "{0}".format(key['id'].replace('<', '').replace('>', ''))
-        keyidLabel.set_markup(keyid_str)
+        key_header = format_key_header(key.fingerprint)
+        keyidLabel.set_markup(key_header)
 
         uidsLabel = self.builder.get_object("uidsLabel")
-        uidsLabel.set_markup(format_details_keydata(key))
+        uidsLabel.set_markup(format_uidslist(key.uidslist))
 
-        fpr = format_fpr(key['fpr'])
+        fpr = format_fingerprint(key.fingerprint)
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
         keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
@@ -423,7 +376,7 @@ class Application(Gtk.Application):
             if type(child) == QRCodeWidget:
                 qr_frame.remove(child)
 
-        qr_data = key['fpr'][-8:]
+        qr_data = key.fingerprint[-8:]
         qr_frame.add(QRCodeWidget(qr_data))
         qr_frame.show_all()
 
@@ -432,7 +385,7 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
-        self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+        self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.key))
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
@@ -454,7 +407,7 @@ class Application(Gtk.Application):
         self.update_back_refresh_button_icon()
 
         # FIXME user should be able to choose which UIDs he wants to sign
-        uids_to_sign = self.key['uids']
+        uids_to_sign = self.key.uidslist
         self.emit('sign-key-confirmed', self.key, uids_to_sign)
 
     def on_cancel_signing_button_clicked(self, buttonObject, *args):
