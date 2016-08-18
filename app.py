@@ -413,7 +413,7 @@ class Application(Gtk.Application):
 
         fpr = format_fpr(key['fpr'])
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
-        keyFingerprintLabel.set_markup('<span size="20000">' + fpr + '</span>')
+        keyFingerprintLabel.set_markup('<span size="15000">' + fpr + '</span>')
         keyFingerprintLabel.set_selectable(True)
 
 
