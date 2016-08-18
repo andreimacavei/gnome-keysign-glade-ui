@@ -15,12 +15,12 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with GNOME Keysign.  If not, see <http://www.gnu.org/licenses/>.
-from datetime import datetime
-import json
-import logging
-import os
-from tempfile import NamedTemporaryFile
 
+from collections import namedtuple
+from datetime import datetime
+import logging
+from tempfile import NamedTemporaryFile
+import warnings
 
 from monkeysign.gpg import Keyring
 from monkeysign.gpg import GpgRuntimeError
@@ -84,12 +84,12 @@ class SplitKeyring(Keyring):
 
 class TempKeyring(SplitKeyring):
     """A temporary keyring which will be discarded after use
-    
+
     It creates a temporary file which will be used for a SplitKeyring.
     You may not necessarily be able to use this Keyring as is, because
     gpg1.4 does not like using secret keys which is does not have the
     public keys of in its pubkeyring.
-    
+
     So you may not necessarily be able to perform operations with
     the user's secret keys (like creating signatures).
     """
@@ -119,22 +119,26 @@ class TempKeyring(SplitKeyring):
 
 class TempSigningKeyring(TempKeyring):
     """A temporary keyring which uses the secret keys of a parent keyring
-    
+
     Creates a temporary keyring which can use the orignal keyring's
-    secret keys.
+    secret keys.  If you don't provide a keyring as argument (i.e. None),
+    a default Keyring() will be taken which represents the user's
+    regular keyring.
 
     In fact, this is not much different from a TempKeyring,
     but gpg1.4 does not see the public keys for the secret keys when run with
     --no-default-keyring and --primary-keyring.
     So we copy the public parts of the secret keys into the primary keyring.
     """
-    def __init__(self, base_keyring, *args, **kwargs):
+    def __init__(self, base_keyring=None, *args, **kwargs):
         # Not a new style class...
         if issubclass(self.__class__, object):
-            super(TempSplitKeyring, self).__init__(*args, **kwargs)
+            super(TempSigningKeyring, self).__init__(*args, **kwargs)
         else:
             TempKeyring.__init__(self, *args, **kwargs)
 
+        if base_keyring is None:
+            base_keyring = Keyring()
         # Copy the public parts of the secret keys to the tmpkeyring
         for fpr, key in base_keyring.get_keys(None,
                                               secret=True,
@@ -166,7 +170,21 @@ def openpgpkey_from_data(keydata):
         fpr_key = list(keys.items())[0]
         # is composed of the fpr as key and an OpenPGP key as value
         key = fpr_key[1]
-        return key
+        return Key.from_monkeysign(key)
+
+
+
+def get_public_key_data(fpr, keyring=None):
+    """Returns keydata for a given fingerprint
+
+    In fact, fpr could be anything that gpg happily exports.
+    """
+    if not keyring:
+        keyring = Keyring()
+    keydata = keyring.export_data(fpr)
+    return keydata
+
+
 
 
 # FIXME: We should rename that to "from_data"
@@ -192,9 +210,9 @@ def get_usable_keys(keyring=None, *args, **kwargs):
         log.debug('Key %s is invalid: %s (i:%s, d:%s, e:%s, r:%s)', key, unusable,
             key.invalid, key.disabled, key.expired, key.revoked)
         return not unusable
-    keys_fpr = keys_dict.items()
+    # keys_fpr = keys_dict.items()
     keys = keys_dict.values()
-    usable_keys = [key for key in keys if is_usable(key)]
+    usable_keys = [Key.from_monkeysign(key) for key in keys if is_usable(key)]
 
     log.debug('Identified usable keys: %s', usable_keys)
     return usable_keys
@@ -203,7 +221,7 @@ def get_usable_keys(keyring=None, *args, **kwargs):
 
 def get_usable_secret_keys(keyring=None, pattern=None):
     '''Returns all secret keys which can be used to sign a key
-    
+
     Uses get_keys on the keyring and filters for
     non revoked, expired, disabled, or invalid keys'''
     if keyring is None:
@@ -214,59 +232,197 @@ def get_usable_secret_keys(keyring=None, pattern=None):
     secret_key_fprs = secret_keys_dict.keys()
     log.debug('Detected secret keys: %s', secret_key_fprs)
     usable_keys_fprs = filter(lambda fpr: get_usable_keys(keyring, pattern=fpr, public=True), secret_key_fprs)
-    usable_keys = [secret_keys_dict[fpr] for fpr in usable_keys_fprs]
+    usable_keys = [Key.from_monkeysign(secret_keys_dict[fpr])
+                   for fpr in usable_keys_fprs]
 
     log.info('Returning usable private keys: %s', usable_keys)
     return usable_keys
 
 
-# http://stackoverflow.com/a/22238613/2015768
-def json_serial(obj):
-    """JSON serializer for objects not serializable by default json code"""
+def sign_keydata_and_encrypt(keydata):
+    "Signs OpenPGP keydata with your regular GnuPG secret keys"
 
-    if isinstance(obj, datetime):
-        serial = obj.isoformat()
-        return serial
-    raise TypeError ("Type not serializable")
+    log = logging.getLogger(__name__ + ':sign_keydata_encrypt')
+
+    tmpkeyring = TempSigningKeyring()
+    tmpkeyring.context.set_option('export-options', 'export-minimal')
+    # Eventually, we want to let the user select their keys to sign with
+    # For now, we just take whatever is there.
+    secret_keys = get_usable_secret_keys(tmpkeyring)
+    log.info('Signing with these keys: %s', secret_keys)
+
+    stripped_key = MinimalExport(keydata)
+    fingerprint = fingerprint_for_key(stripped_key)
+
+    log.debug('Trying to import key\n%s', stripped_key)
+    if tmpkeyring.import_data(stripped_key):
+        # 3. for every user id (or all, if -a is specified)
+        # 3.1. sign the uid, using gpg-agent
+        keys = tmpkeyring.get_keys(fingerprint)
+        log.info("Found keys %s for fp %s", keys, fingerprint)
+        if len(keys) != 1:
+            raise ValueError("We received multiple keys for fp %s: %s"
+                             % (fingerprint, keys))
+        key = keys[fingerprint]
+        uidlist = key.uidslist
+
+        for secret_key in secret_keys:
+            secret_fpr = secret_key.fpr
+            log.info('Setting up to sign with %s', secret_fpr)
+            # We need to --always-trust, because GnuPG would print
+            # warning about the trustdb.  I think this is because
+            # we have a newly signed key whose trust GnuPG wants to
+            # incorporate into the trust decision.
+            tmpkeyring.context.set_option('always-trust')
+            tmpkeyring.context.set_option('local-user', secret_fpr)
+            # FIXME: For now, we sign all UIDs. This is bad.
+            ret = tmpkeyring.sign_key(uidlist[0].uid, signall=True)
+            log.info("Result of signing %s on key %s: %s", uidlist[0].uid, fingerprint, ret)
 
 
-def uid_to_dict(uid):
-    d = {
-         'creation': uid.creation,
-         'expire': uid.expire,
-         'uid': uid.uid.replace('<>', ''),
-         'uidhash': uid.uidhash
-    }
-    return d
+        for uid in uidlist:
+            uid_str = uid.uid
+            log.info("Processing uid %s %s", uid, uid_str)
+
+            # 3.2. export and encrypt the signature
+            # 3.3. mail the key to the user
+            signed_key = UIDExport(uid_str, tmpkeyring.export_data(uid_str))
+            log.info("Exported %d bytes of signed key", len(signed_key))
+
+            # self.signui.tmpkeyring.context.set_option('armor')
+            tmpkeyring.context.set_option('always-trust')
+            encrypted_key = tmpkeyring.encrypt_data(data=signed_key, recipient=uid_str)
+            yield (uid.uid, encrypted_key)
 
 
-def key_to_dict(key):
-    d = {
-        'id': key.keyid(),
-        'fpr': key.fpr,
-        'creation': key.creation,
-        'expiry': key.expiry,
-        'expired': key.expired,
-        'uids': [uid_to_dict(u) for u in key.uidslist],
-        'secret': key.secret,
-        'nsigs': 42, # FIXME: Remove this property
-    }
 
-    return d
+def parse_sig_list(text):
+    '''Parses GnuPG's signature list (i.e. list-sigs)
+
+    The format is described in the GnuPG man page'''
+    sigslist = []
+    for block in text.split("\n"):
+        if block.startswith("sig"):
+            record = block.split(":")
+            log.debug("sig record (%d) %s", len(record), record)
+            keyid, timestamp, uid = record[4], record[5], record[9]
+            sigslist.append((keyid, timestamp, uid))
+
+    return sigslist
 
 
-def get_usable_secret_keys_dict(pattern=None):
-    keyring = Keyring()
-    keys = get_usable_secret_keys(keyring)
-    d = {'keys':
-            [key_to_dict(k)
-            for k in keys]
-    }
-    return d
+def signatures_for_keyid(keyid, keyring=None):
+    '''Returns the list of signatures for a given key id
 
-def get_usable_secret_keys_json(pattern=None):
-    d = get_usable_secret_keys_dict(pattern=pattern)
-    return json.dumps(d, default=json_serial, indent=4)
+    This will call out to GnuPG list-sigs, using Monkeysign,
+    and parse the resulting string into a list of signatures.
+
+    A default Keyring will be used unless you pass an instance
+    as keyring argument.
+    '''
+    if keyring is None:
+        kr = Keyring()
+    else:
+        kr = keyring
+
+    # FIXME: this would be better if it was done in monkeysign
+    kr.context.call_command(['list-sigs', keyid])
+    siglist = parse_sig_list(kr.context.stdout)
+
+    return siglist
+
+
+
+def parse_uid(uid):
+    "Parses a GnuPG UID into it's name, comment, and email component"
+    # remove the comment from UID (if it exists)
+    com_start = uid.find('(')
+    if com_start != -1:
+        com_end = uid.find(')')
+        uid = uid[:com_start].strip() + uid[com_end+1:].strip()
+
+    # FIXME: Actually parse the comment...
+    comment = ""
+    # split into user's name and email
+    tokens = uid.split('<')
+    name = tokens[0].strip()
+    email = 'unknown'
+    if len(tokens) > 1:
+        email = tokens[1].replace('>','').strip()
+
+    return (name, comment, email)
+
+
+class UID(namedtuple("UID", "expiry name comment email")):
+    "Represents an OpenPGP UID - at least to the extent we care about it"
+
+    @classmethod
+    def from_monkeysign(cls, uid):
+        "Creates a new UID from a monkeysign key"
+        uidstr = uid.uid
+        name, comment, email = parse_uid(uidstr)
+        expiry = uid.expire
+        return cls(expiry, name, comment, email)
+
+    def __format__(self, arg):
+        if self.comment:
+            s = "{name} ({comment}) <{email}>"
+        else:
+            s = "{name} <{email}>"
+        return s.format(**self._asdict())
+
+    def __str__(self):
+        return "{}".format(self)
+
+    @property
+    def uid(self):
+        "Legacy compatibility, use str() instead"
+        warnings.warn("Legacy uid, use '{}'.format() instead",
+                      DeprecationWarning)
+        return str(self)
+
+
+class Key(namedtuple("Key", "expiry fingerprint uidslist")):
+    "Represents an OpenPGP Key to extent we care about"
+
+    def __init__(self, expiry, fingerprint, uidslist,
+                       *args, **kwargs):
+        try:
+            exp_date = datetime.fromtimestamp(float(expiry))
+        except TypeError as e:
+            # This might be the case when the key.expiry is already a timedate
+            exp_date = expiry
+        except ValueError as e:
+            # This happens when converting an empty string to a datetime.
+            exp_date = None
+
+        super(Key, self).__init__(exp_date, fingerprint, uidslist)
+
+    def __format__(self, arg):
+        s  = "{fingerprint}\r\n"
+        s += '\r\n'.join(("  {}".format(uid) for uid in self.uidslist))
+# This is what original output looks like:
+# pub  [unknown] 3072R/1BF98D6D 1336669781 [expiry: 2017-05-09 19:09:41]
+#    Fingerprint = FF52 DA33 C025 B1E0 B910  92FC 1C34 19BF 1BF9 8D6D
+# uid 1      [unknown] Tobias Mueller <tobias.mueller2@mail.dcu.ie>
+# uid 2      [unknown] Tobias Mueller <4tmuelle@informatik.uni-hamburg.de>
+# sub   3072R/3B76E8B3 1336669781 [expiry: 2017-05-09 19:09:41]
+        return s.format(**self._asdict())
+
+    @property
+    def fpr(self):
+        "Legacy compatibility, use fingerprint instead"
+        warnings.warn("Legacy fpr, use the fingerprint property",
+                      DeprecationWarning)
+        return self.fingerprint
+
+    @classmethod
+    def from_monkeysign(cls, key):
+        "Creates a new Key from an existing monkeysign key"
+        uids = [UID.from_monkeysign(uid) for uid in  key.uidslist]
+        expiry = key.expiry
+        fingerprint = key.fpr
+        return cls(expiry, fingerprint, uids)
 
 
 ## Monkeypatching to get more debug output
@@ -278,7 +434,3 @@ def build_command(*args, **kwargs):
     log.debug("Building cmd: %s", ' '.join(["'%s'" % c for c in ret]))
     return ret
 monkeysign.gpg.Context.build_command = build_command
-
-
-
-
