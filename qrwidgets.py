@@ -3,6 +3,8 @@
 import logging
 from gi.repository import Gtk
 
+from QRcode import QRImage
+
 log = logging.getLogger(__name__)
 
 
@@ -12,11 +14,13 @@ class QRCodeWidget(Gtk.Box):
         super(QRCodeWidget, self).__init__()
         self.set_orientation(Gtk.Orientation.VERTICAL)
 
-        self.data = data
-        self.label = Gtk.Label()
-        self.label.set_markup('<span size="15000">' + self.data + '</span>')
+        self.qrcode = QRImage(data)
+        self.qrcode.props.margin = 10
 
-        self.pack_start(self.label, True, True, 0)
+        self.pack_start(self.qrcode, True, True, 0)
+
+    def set_data(self, data):
+        self.qrcode.data = data
 
 
 class QRScannerWidget(Gtk.Box):

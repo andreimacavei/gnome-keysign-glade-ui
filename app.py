@@ -422,7 +422,7 @@ class Application(Gtk.Application):
             if type(child) == QRCodeWidget:
                 qr_frame.remove(child)
 
-        qr_data = key['fpr'][-8:]
+        qr_data = 'OPENPGP4FPR:' + key['fpr']
         qr_frame.add(QRCodeWidget(qr_data))
         qr_frame.show_all()
 
