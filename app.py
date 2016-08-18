@@ -17,7 +17,7 @@ from gi.repository import (
     Gtk
 )
 
-from qrcode import QRCodeWidget, QRScannerWidget
+from qrwidgets import QRCodeWidget, QRScannerWidget
 
 _data = {
     'key1' : {'id':'2048R/ED8312A2 2014-04-08',
