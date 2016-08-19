@@ -132,14 +132,6 @@ def is_valid_fingerprint(fpr):
 
     return True
 
-
-def verify_fingerprint(fpr, keys):
-    for keyid,val in keys.items():
-        key = keys[keyid]
-        if val['fpr'] == fpr:
-            return True
-    return False
-
 def verify_downloaded_key(fpr, key):
     # FIXME: will be replaced with code that checks if the fingerprint
     # of the downloaded key is the same as the passed fpr
