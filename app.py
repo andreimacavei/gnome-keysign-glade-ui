@@ -140,6 +140,10 @@ def verify_fingerprint(fpr, keys):
             return True
     return False
 
+def verify_downloaded_key(fpr, key):
+    # FIXME: will be replaced with code that checks if the fingerprint
+    # of the downloaded key is the same as the passed fpr
+    return key if fpr == key['fpr'] else None
 
 def format_fpr(fpr):
     res_fpr = ""
@@ -267,20 +271,6 @@ class Application(Gtk.Application):
             self.listbox.add(ListBoxRowWithKeyData(keydata))
         self.listbox.show_all()
 
-    def download_key(self, key):
-        self.stack3.set_visible_child_name('page2')
-        self.update_app_state(CONFIRM_KEY_STATE)
-        self.update_back_refresh_button_icon()
-
-        self.spinner1.stop()
-        self.timeout_id = 0
-        return False
-
-    def on_valid_fingerprint(self, app, key):
-        self.log.info("Signal emitted: valid-fingerprint: {}".format(key['id']))
-        download_time = 3
-        self.timeout_id = GLib.timeout_add_seconds(download_time, self.download_key, key, priority=GLib.PRIORITY_DEFAULT)
-
     def sign_key(self, key, uids):
         self.succes_fail_signing_label.set_markup("Key succesfully signed!")
         self.succes_fail_signing_label.show()
@@ -379,45 +369,86 @@ class Application(Gtk.Application):
 
         self.update_back_refresh_button_icon()
 
+
+    def download_keys(self, fpr=None):
+        # FIXME: this will be replaced with code that downloads
+        # data from network
+        if not fpr:
+            return _data.values()
+        else:
+            res = []
+            for key,val in _data.items():
+                if val['fpr'] == fpr:
+                    res.append(val)
+        return res
+
+    def obtain_key_async(self, cleaned_fpr):
+        self.log.debug("Obtaining key with fpr: {}".format(cleaned_fpr))
+
+        # ToBeNoted(TBN): An attacker can publish a network service with the
+        # same fingerprint in it's TXT record as another participant. This is
+        # why we download all data from the network and verify it afterwards.
+        keys = self.download_keys(cleaned_fpr)
+        key = None
+
+        for keydata in keys:
+            key = verify_downloaded_key(cleaned_fpr, keydata)
+            if key:
+                break
+
+        if key:
+            self.spinner1.stop()
+            self.timeout_id = 0
+
+            keyIdsLabel = self.builder.get_object("key_ids_label")
+            keyIdsLabel.set_markup(key['id'])
+
+            uidsLabel = self.builder.get_object("uids_label")
+            markup = ""
+            for uid in key['uids']:
+                markup += uid['uid'] + "\n"
+            uidsLabel.set_markup(markup)
+
+            self.stack3.set_visible_child_name('page2')
+            self.update_app_state(CONFIRM_KEY_STATE)
+            self.update_back_refresh_button_icon()
+            self.key = key
+        else:
+            builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
+            dialog = builder.get_object('invalid_dialog')
+            dialog.set_transient_for(self.window)
+            response = dialog.run()
+            if response == Gtk.ResponseType.CLOSE:
+                self.log.debug("WARN dialog closed by clicking CLOSE button")
+                pass
+            dialog.destroy()
+
+            self.stack3.set_visible_child_name('page0')
+            self.update_app_state(ENTER_FPR_STATE)
+            self.update_back_refresh_button_icon()
+
+        return False
+
+    def on_valid_fingerprint(self, app, cleaned_fpr):
+        self.error_download_label.hide()
+        self.spinner1.start()
+
+        # GLib.idle_add(self.obtain_key_async, cleaned_fpr)
+        download_time = 3
+        self.timeout_id = GLib.timeout_add_seconds(download_time,
+                                                    self.obtain_key_async,
+                                                    cleaned_fpr,
+                                                    priority=GLib.PRIORITY_DEFAULT)
+
     def on_text_changed(self, entryObject, *args):
         cleaned_fpr = clean_fingerprint(entryObject.get_text())
-        self.log.debug("Gtk.Entry text changed: {}".format(cleaned_fpr))
 
         if is_valid_fingerprint(cleaned_fpr):
-            keys = get_secret_keys()
-            for keyid,val in keys.items():
-                key = keys[keyid]
+            self.stack3.set_visible_child_name('page1')
+            self.update_app_state(DOWNLOAD_KEY_STATE)
+            self.update_back_refresh_button_icon()
 
-                if val['fpr'] == cleaned_fpr:
-                    keyIdsLabel = self.builder.get_object("key_ids_label")
-                    keyIdsLabel.set_markup(key['id'])
-
-                    uidsLabel = self.builder.get_object("uids_label")
-                    markup = ""
-                    for uid in key['uids']:
-                        markup += uid['uid'] + "\n"
-                    uidsLabel.set_markup(markup)
-
-                    self.error_download_label.hide()
-                    self.spinner1.start()
-
-                    self.stack3.set_visible_child_name('page1')
-                    self.update_app_state(DOWNLOAD_KEY_STATE)
-                    self.update_back_refresh_button_icon()
-
-                    self.key = key
-                    self.emit('valid-fingerprint', key)
-                    break
-            else:
-                builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
-                dialog = builder.get_object('invalid_dialog')
-                dialog.set_transient_for(self.window)
-                response = dialog.run()
-                if response == Gtk.ResponseType.CLOSE:
-                    self.log.debug("WARN dialog closed by clicking CLOSE button")
-                    pass
-
-                dialog.destroy()
+            self.emit('valid-fingerprint', cleaned_fpr)
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
         key = listBoxRowObject.data
