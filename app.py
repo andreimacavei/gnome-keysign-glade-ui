@@ -450,38 +450,6 @@ class Application(Gtk.Application):
 
             self.emit('valid-fingerprint', cleaned_fpr)
 
-    def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
-        key = listBoxRowObject.data
-
-        keyidLabel = self.builder.get_object("keyidLabel")
-        keyid_str = "{0}".format(key['id'])
-        keyidLabel.set_markup(keyid_str)
-
-        uidsLabel = self.builder.get_object("uidsLabel")
-        uidsLabel.set_markup(format_details_keydata(key))
-
-        fpr = format_fpr(key['fpr'])
-        keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
-        keyFingerprintLabel.set_markup('<span size="15000">' + fpr + '</span>')
-        keyFingerprintLabel.set_selectable(True)
-
-
-        qr_frame = self.builder.get_object("qrcode_frame")
-        for child in qr_frame.get_children():
-            if type(child) == QRCodeWidget:
-                qr_frame.remove(child)
-
-        qr_data = 'OPENPGP4FPR:' + key['fpr']
-        qr_frame.add(QRCodeWidget(qr_data))
-        qr_frame.show_all()
-
-        self.stack2.set_visible_child_name('page1')
-        self.update_app_state(PRESENT_KEY_STATE)
-        self.update_back_refresh_button_icon()
-
-    def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
-        self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
-
     def parse_barcode(self, barcode_string):
         """Parses information contained in a barcode
 
@@ -531,22 +499,44 @@ class Application(Gtk.Application):
             self.log.error("Expected fingerprint in %r to evaluate to True, "
                            "but is %r", parsed, fingerprint)
         else:
-            keys = get_secret_keys()
-            if verify_fingerprint(fingerprint, keys):
-                # This is the easiest way to advance to next page
-                entry = self.builder.get_object("entry1")
-                entry.set_text(fingerprint)
-                # entry.emit('changed', entryObject)
-            else:
-                builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
-                dialog = builder.get_object('invalid_dialog')
-                dialog.set_transient_for(self.window)
-                response = dialog.run()
-                if response == Gtk.ResponseType.CLOSE:
-                    self.log.debug("WARN dialog closed by clicking CLOSE button")
-                    pass
+            if is_valid_fingerprint(fingerprint):
+                self.stack3.set_visible_child_name('page1')
+                self.update_app_state(DOWNLOAD_KEY_STATE)
+                self.update_back_refresh_button_icon()
 
-                dialog.destroy()
+                self.emit('valid-fingerprint', fingerprint)
+
+    def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
+        key = listBoxRowObject.data
+
+        keyidLabel = self.builder.get_object("keyidLabel")
+        keyid_str = "{0}".format(key['id'])
+        keyidLabel.set_markup(keyid_str)
+
+        uidsLabel = self.builder.get_object("uidsLabel")
+        uidsLabel.set_markup(format_details_keydata(key))
+
+        fpr = format_fpr(key['fpr'])
+        keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
+        keyFingerprintLabel.set_markup('<span size="15000">' + fpr + '</span>')
+        keyFingerprintLabel.set_selectable(True)
+
+
+        qr_frame = self.builder.get_object("qrcode_frame")
+        for child in qr_frame.get_children():
+            if type(child) == QRCodeWidget:
+                qr_frame.remove(child)
+
+        qr_data = 'OPENPGP4FPR:' + key['fpr']
+        qr_frame.add(QRCodeWidget(qr_data))
+        qr_frame.show_all()
+
+        self.stack2.set_visible_child_name('page1')
+        self.update_app_state(PRESENT_KEY_STATE)
+        self.update_back_refresh_button_icon()
+
+    def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
+        self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
