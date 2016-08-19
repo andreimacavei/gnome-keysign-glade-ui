@@ -21,7 +21,7 @@ from datetime import date, datetime
 from qrcode import QRCodeWidget, QRScannerWidget
 
 try:
-    import keysign.gpgmh
+    import keysign.gpgmh as gpgmh
 except ImportError as e:
     print e
     import gpgmh
