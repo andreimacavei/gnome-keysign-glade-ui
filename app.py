@@ -133,8 +133,7 @@ def is_valid_fingerprint(fpr):
     return True
 
 
-def verify_fingerprint_from_dict(fpr):
-    keys = get_secret_keys()
+def verify_fingerprint(fpr, keys):
     for keyid,val in keys.items():
         key = keys[keyid]
         if val['fpr'] == fpr:
@@ -501,7 +500,8 @@ class Application(Gtk.Application):
             self.log.error("Expected fingerprint in %r to evaluate to True, "
                            "but is %r", parsed, fingerprint)
         else:
-            if verify_fingerprint_from_dict(fingerprint):
+            keys = get_secret_keys()
+            if verify_fingerprint(fingerprint, keys):
                 # This is the easiest way to advance to next page
                 entry = self.builder.get_object("entry1")
                 entry.set_text(fingerprint)
