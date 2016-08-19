@@ -374,7 +374,7 @@ class Application(Gtk.Application):
                     res.append(val)
         return res
 
-    def obtain_key_async(self, cleaned_fpr, callback):
+    def obtain_key_async(self, cleaned_fpr, callback, error_cb):
         self.log.debug("Obtaining key with fpr: {}".format(cleaned_fpr))
 
         # ToBeNoted(TBN): An attacker can publish a network service with the
@@ -392,18 +392,7 @@ class Application(Gtk.Application):
             self.key = key
             GLib.idle_add(callback, key)
         else:
-            builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
-            dialog = builder.get_object('invalid_dialog')
-            dialog.set_transient_for(self.window)
-            response = dialog.run()
-            if response == Gtk.ResponseType.CLOSE:
-                self.log.debug("WARN dialog closed by clicking CLOSE button")
-                pass
-            dialog.destroy()
-
-            self.stack3.set_visible_child_name('page0')
-            self.update_app_state(ENTER_FPR_STATE)
-            self.update_back_refresh_button_icon()
+            GLib.idle_add(error_cb)
 
         return False
 
@@ -417,6 +406,7 @@ class Application(Gtk.Application):
                                                     self.obtain_key_async,
                                                     cleaned_fpr,
                                                     self.received_key_callback,
+                                                    self.invalid_key_callback,
                                                     priority=GLib.PRIORITY_DEFAULT)
 
     def received_key_callback(self, key):
@@ -435,6 +425,23 @@ class Application(Gtk.Application):
         self.timeout_id = 0
         self.stack3.set_visible_child_name('page2')
         self.update_app_state(CONFIRM_KEY_STATE)
+        self.update_back_refresh_button_icon()
+
+    def invalid_key_callback(self):
+        self.log.debug("Called invalid_key_callback")
+
+        builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
+        dialog = builder.get_object('invalid_dialog')
+        dialog.set_transient_for(self.window)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.CLOSE:
+            self.log.debug("WARN dialog closed by clicking CLOSE button")
+            pass
+        dialog.destroy()
+
+        self.stack3.set_visible_child_name('page0')
+        self.update_app_state(ENTER_FPR_STATE)
         self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
