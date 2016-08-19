@@ -374,7 +374,7 @@ class Application(Gtk.Application):
                     res.append(val)
         return res
 
-    def obtain_key_async(self, cleaned_fpr):
+    def obtain_key_async(self, cleaned_fpr, callback):
         self.log.debug("Obtaining key with fpr: {}".format(cleaned_fpr))
 
         # ToBeNoted(TBN): An attacker can publish a network service with the
@@ -389,22 +389,8 @@ class Application(Gtk.Application):
                 break
 
         if key:
-            self.spinner1.stop()
-            self.timeout_id = 0
-
-            keyIdsLabel = self.builder.get_object("key_ids_label")
-            keyIdsLabel.set_markup(key['id'])
-
-            uidsLabel = self.builder.get_object("uids_label")
-            markup = ""
-            for uid in key['uids']:
-                markup += uid['uid'] + "\n"
-            uidsLabel.set_markup(markup)
-
-            self.stack3.set_visible_child_name('page2')
-            self.update_app_state(CONFIRM_KEY_STATE)
-            self.update_back_refresh_button_icon()
             self.key = key
+            GLib.idle_add(callback, key)
         else:
             builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
             dialog = builder.get_object('invalid_dialog')
@@ -430,7 +416,26 @@ class Application(Gtk.Application):
         self.timeout_id = GLib.timeout_add_seconds(download_time,
                                                     self.obtain_key_async,
                                                     cleaned_fpr,
+                                                    self.received_key_callback,
                                                     priority=GLib.PRIORITY_DEFAULT)
+
+    def received_key_callback(self, key):
+        self.log.debug("Called received_key_callback")
+
+        self.spinner1.stop()
+        keyIdsLabel = self.builder.get_object("key_ids_label")
+        keyIdsLabel.set_markup(key['id'])
+
+        uidsLabel = self.builder.get_object("uids_label")
+        markup = ""
+        for uid in key['uids']:
+            markup += uid['uid'] + "\n"
+        uidsLabel.set_markup(markup)
+
+        self.timeout_id = 0
+        self.stack3.set_visible_child_name('page2')
+        self.update_app_state(CONFIRM_KEY_STATE)
+        self.update_back_refresh_button_icon()
 
     def on_text_changed(self, entryObject, *args):
         cleaned_fpr = clean_fingerprint(entryObject.get_text())
