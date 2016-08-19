@@ -400,6 +400,10 @@ class Application(Gtk.Application):
         self.error_download_label.hide()
         self.spinner1.start()
 
+        self.stack3.set_visible_child_name('page1')
+        self.update_app_state(DOWNLOAD_KEY_STATE)
+        self.update_back_refresh_button_icon()
+
         # GLib.idle_add(self.obtain_key_async, cleaned_fpr)
         download_time = 3
         self.timeout_id = GLib.timeout_add_seconds(download_time,
@@ -448,9 +452,6 @@ class Application(Gtk.Application):
         cleaned_fpr = clean_fingerprint(entryObject.get_text())
 
         if is_valid_fingerprint(cleaned_fpr):
-            self.stack3.set_visible_child_name('page1')
-            self.update_app_state(DOWNLOAD_KEY_STATE)
-            self.update_back_refresh_button_icon()
 
             self.emit('valid-fingerprint', cleaned_fpr)
 
@@ -504,10 +505,6 @@ class Application(Gtk.Application):
                            "but is %r", parsed, fingerprint)
         else:
             if is_valid_fingerprint(fingerprint):
-                self.stack3.set_visible_child_name('page1')
-                self.update_app_state(DOWNLOAD_KEY_STATE)
-                self.update_back_refresh_button_icon()
-
                 self.emit('valid-fingerprint', fingerprint)
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
