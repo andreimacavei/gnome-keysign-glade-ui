@@ -8,7 +8,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(
 
 from gi.repository import GLib
 
-from app import Application
+from keysign.app import Application
 
 def main():
     app = Application()
