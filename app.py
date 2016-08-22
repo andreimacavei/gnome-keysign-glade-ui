@@ -9,6 +9,8 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(
 
 from urlparse import urlparse, parse_qs
 
+from network.AvahiBrowser import AvahiBrowser
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gst', '1.0')
@@ -232,6 +234,11 @@ class Application(Gtk.Application):
         self.listbox.connect('row-activated', self.on_row_activated, self.builder)
         self.listbox.connect('row-selected', self.on_row_selected, self.builder)
 
+        self.avahi_browser = None
+        self.avahi_service_type = '_keysign._tcp'
+        self.discovered_services = []
+        GLib.idle_add(self.setup_avahi_browser)
+
         # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
         action.connect('activate', lambda action, param: self.quit())
@@ -252,6 +259,51 @@ class Application(Gtk.Application):
 
         self.add_window(self.window)
         self.window.show_all()
+
+    def setup_avahi_browser(self):
+        self.avahi_browser = AvahiBrowser(service=self.avahi_service_type)
+        self.avahi_browser.connect('new_service', self.on_new_service)
+        self.avahi_browser.connect('remove_service', self.on_remove_service)
+
+        return False
+
+    def on_new_service(self, browser, name, address, port, txt_dict):
+        published_fpr = txt_dict.get('fingerprint', None)
+
+        self.log.info("Probably discovered something, let's check; %s %s:%i:%s",
+                        name, address, port, published_fpr)
+
+        if self.verify_service(name, address, port):
+            GLib.idle_add(self.add_discovered_service, name, address, port, published_fpr)
+        else:
+            self.log.warn("Client was rejected: %s %s %i",
+                        name, address, port)
+
+    def on_remove_service(self, browser, service_type, name):
+        '''Receives on_remove signal from avahibrowser.py to remove service from list and
+        transfers data to remove_discovered_service'''
+        self.log.info("Received a remove signal, let's check; %s:%s", service_type, name)
+        GLib.idle_add(self.remove_discovered_service, name)
+
+    def verify_service(self, name, address, port):
+        '''A tiny function to return whether the service
+        is indeed something we are interested in'''
+        return True
+
+    def add_discovered_service(self, name, address, port, published_fpr):
+        self.discovered_services += ((name, address, port, published_fpr), )
+        #List needs to be modified when server services are removed.
+        self.log.info("Clients currently in list '%s'", self.discovered_services)
+        return False
+
+    def remove_discovered_service(self, name):
+        '''Removes server-side clients from discovered_services list
+        when the server name with fpr is a match.'''
+        for client in self.discovered_services:
+            if client[0] == name:
+                self.discovered_services.remove(client)
+        self.log.info("Clients currently in list '%s'", self.discovered_services)
+
 
     def update_key_list(self):
         #FIXME do not remove rows, but update data
