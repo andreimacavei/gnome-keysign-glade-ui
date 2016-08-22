@@ -10,6 +10,7 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(
 from urlparse import urlparse, parse_qs
 
 from network.AvahiBrowser import AvahiBrowser
+from network import Keyserver
 
 import gi
 gi.require_version('Gtk', '3.0')
@@ -203,6 +204,8 @@ class Application(Gtk.Application):
         self.key = None
         self.timeout_id = 0
 
+        self.keyserver = None
+
     def do_startup(self):
         Gtk.Application.do_startup(self)
 
@@ -344,6 +347,11 @@ class Application(Gtk.Application):
             if self.timeout_id != 0:
                 GLib.source_remove(self.timeout_id)
                 self.timeout_id = 0
+        elif self.last_state == PRESENT_KEY_STATE:
+            # Shutdown key server
+            if self.keyserver:
+                self.log.debug("Keyserver switched off")
+                self.stop_server()
 
         if new_state:
             self.state = new_state
@@ -584,12 +592,32 @@ class Application(Gtk.Application):
         qr_frame.add(QRCodeWidget(qr_data))
         qr_frame.show_all()
 
+        self.log.debug("Keyserver switched on! Serving key with fpr: %s", fpr)
+        # GLib.idle_add(self.setup_server(keydata, fpr))
+        self.setup_server(key, key['fpr'])
+
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
         self.update_back_refresh_button_icon()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key '{}'' selected".format(listBoxRowObject.data['id']))
+
+    def setup_server(self, keydata, fingerprint):
+        """
+        Starts the key-server which serves the provided keydata and
+        announces the fingerprint as TXT record using Avahi
+        """
+        self.log.info('Serving now')
+        self.log.debug('About to call %r', Keyserver.ServeKeyThread)
+        self.keyserver = Keyserver.ServeKeyThread(str(keydata), fingerprint)
+        self.log.info('Starting thread %r', self.keyserver)
+        self.keyserver.start()
+        self.log.info('Finished serving')
+        return False
+
+    def stop_server(self):
+        self.keyserver.shutdown()
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
