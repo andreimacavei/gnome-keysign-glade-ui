@@ -12,13 +12,11 @@
     <property name="buttons">close</property>
     <property name="text" translatable="yes">&lt;b&gt;Invalid QR Code&lt;/b&gt;</property>
     <property name="use_markup">True</property>
-    <signal name="delete-event" handler="on_delete_invalid_dialog" swapped="no"/>
     <child internal-child="vbox">
       <object class="GtkBox" id="messagedialog-vbox">
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <property name="spacing">2</property>
-        <signal name="delete-event" handler="on_delete_invalid_dialog" swapped="no"/>
         <child internal-child="action_area">
           <object class="GtkButtonBox" id="messagedialog-action_area">
             <property name="can_focus">False</property>

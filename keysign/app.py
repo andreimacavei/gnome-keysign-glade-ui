@@ -1,6 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#    Copyright 2016 Andrei Macavei <andrei.macavei89@gmail.com>
+#
+#    This file is part of GNOME Keysign.
+#
+#    GNOME Keysign is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    GNOME Keysign is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNOME Keysign.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import logging
 import signal
 import sys
@@ -108,6 +125,12 @@ def format_fingerprint(fpr):
     res_fpr = res_fpr.rstrip()
     return res_fpr
 
+# FIXME: move this to a proper location
+DATADIR = os.path.join(sys.prefix, "share", "keysign")
+
+def ui_file(filename):
+    return os.path.join(DATADIR, "ui", filename)
+
 
 class ListBoxRowWithKey(Gtk.ListBoxRow):
 
@@ -140,18 +163,31 @@ class Application(Gtk.Application):
         Gtk.Application.__init__(
             self, application_id=None) #org.gnome.keysign
 
+        self.log = logging.getLogger(__name__)
         self.builder = Gtk.Builder()
         try:
-            self.builder.add_from_file("applicationwindow.ui")
-            self.builder.add_from_file("send.ui")
-            self.builder.add_from_file("receive.ui")
+            self.builder.add_from_file(ui_file("applicationwindow.ui"))
+            self.builder.add_from_file(ui_file("send.ui"))
+            self.builder.add_from_file(ui_file("receive.ui"))
+            self.builder.add_from_file(ui_file("menus.ui"))
+            self.builder.add_from_file(ui_file("invalidkeydialog.ui"))
         except:
-            self.log.exception("ui file not found")
-            sys.exit()
+            self.log.exception("UI file not installed. Using current data dir.")
+            # This might be the case when we want to test the app
+            # without installing it.
+            # It probably isn't the ideal way to do the switch
+            try:
+                self.builder.add_from_file("data/applicationwindow.ui")
+                self.builder.add_from_file("data/send.ui")
+                self.builder.add_from_file("data/receive.ui")
+                self.builder.add_from_file("data/menus.ui")
+                self.builder.add_from_file("data/invalidkeydialog.ui")
+            except Exception as e:
+                print e
+                sys.exit()
 
         self.builder.connect_signals(self)
         self.window = None
-        self.log = logging.getLogger(__name__)
 
         self.connect('valid-fingerprint', self.on_valid_fingerprint)
         self.connect('sign-key-confirmed', self.on_sign_key_confirmed)
@@ -210,8 +246,7 @@ class Application(Gtk.Application):
         self.add_action(action)
 
         # Set up app menu
-        builder = Gtk.Builder.new_from_file("menus.ui")
-        self.set_app_menu(builder.get_object("app-menu"))
+        self.set_app_menu(self.builder.get_object("app-menu"))
 
     def do_activate(self):
         # Set up the app window
@@ -453,8 +488,7 @@ class Application(Gtk.Application):
     def invalid_key_callback(self):
         self.log.debug("Called invalid_key_callback")
 
-        builder = Gtk.Builder.new_from_file("invalidkeydialog.ui")
-        dialog = builder.get_object('invalid_dialog')
+        dialog = self.builder.get_object('invalid_dialog')
         dialog.set_transient_for(self.window)
 
         response = dialog.run()

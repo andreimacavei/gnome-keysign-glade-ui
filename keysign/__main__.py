@@ -16,25 +16,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with GNOME Keysign.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
-import signal
-import sys
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
+import logging, sys
 
-from gi.repository import GLib
+from .__init__ import main
 
-from keysign.app import Application
 
-def main():
-    app = Application()
-
-    try:
-        GLib.unix_signal_add_full(GLib.PRIORITY_HIGH, signal.SIGINT, lambda *args : app.quit(), None)
-    except AttributeError:
-        pass
-
-    exit_status = app.run(None)
-    return exit_status
 
 if __name__ == '__main__':
+    logging.basicConfig(stream=sys.stderr,
+        level=logging.DEBUG,
+        format='%(name)s (%(levelname)s): %(message)s')
     sys.exit(main())

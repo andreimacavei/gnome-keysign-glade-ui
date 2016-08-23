@@ -16,16 +16,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with GNOME Keysign.  If not, see <http://www.gnu.org/licenses/>.
 
-import logging
-import signal
-import sys
-logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
+__version__ = '0.1'
 
-from gi.repository import GLib
 
-from keysign.app import Application
 
 def main():
+    # These imports were moved here because the keysign module
+    # can be imported without wanting to run it, e.g. setup.py
+    # imports the __version__
+
+    import logging
+    import signal
+    import sys
+    logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
+
+    from gi.repository import GLib
+
+    from .app import Application
+
     app = Application()
 
     try:
@@ -35,6 +43,3 @@ def main():
 
     exit_status = app.run(None)
     return exit_status
-
-if __name__ == '__main__':
-    sys.exit(main())
