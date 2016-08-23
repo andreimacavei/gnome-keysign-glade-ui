@@ -1,0 +1,3 @@
+[submodule "monkeysign"]
+	path = monkeysign
+	url = git://git.monkeysphere.info/monkeysign

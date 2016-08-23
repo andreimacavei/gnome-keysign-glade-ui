@@ -48,6 +48,12 @@ if __name__ == '__main__':
             'keysign',
             'network',
             ],
+        py_modules = [
+            'monkeysign.msgfmt',
+            'monkeysign.translation',
+            'monkeysign.gpg',
+        ],
+        package_dir={'monkeysign': 'monkeysign/monkeysign'},
         #package_dir={'keysign': 'keysign'},
         #package_data={'keysign': ['data/']},
         data_files=data_files,
@@ -55,6 +61,7 @@ if __name__ == '__main__':
         #scripts = ['gnome-keysign.py'],
         install_requires=[
             'qrcode',
+            'requests>=2.6',
             ],
         license='GPLv3+',
         # long_description=open('README.rst').read(),
