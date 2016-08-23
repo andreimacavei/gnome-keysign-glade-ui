@@ -45,7 +45,8 @@ if __name__ == '__main__':
         # maintainer=maintainers,
         # maintainer_email=maintainers_emails,
         packages = [
-            'keysign'
+            'keysign',
+            'network',
             ],
         #package_dir={'keysign': 'keysign'},
         #package_data={'keysign': ['data/']},
