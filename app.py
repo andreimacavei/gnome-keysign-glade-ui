@@ -9,6 +9,9 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(
 
 from urlparse import urlparse, parse_qs
 
+from network.AvahiBrowser import AvahiBrowser
+from network import Keyserver
+
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gst', '1.0')
@@ -158,6 +161,8 @@ class Application(Gtk.Application):
         self.key = None
         self.timeout_id = 0
 
+        self.keyserver = None
+
     def do_startup(self):
         Gtk.Application.do_startup(self)
 
@@ -189,6 +194,11 @@ class Application(Gtk.Application):
         self.listbox.connect('row-activated', self.on_row_activated, self.builder)
         self.listbox.connect('row-selected', self.on_row_selected, self.builder)
 
+        self.avahi_browser = None
+        self.avahi_service_type = '_keysign._tcp'
+        self.discovered_services = []
+        GLib.idle_add(self.setup_avahi_browser)
+
         # Create menu action 'quit'
         action = Gio.SimpleAction.new('quit', None)
         action.connect('activate', lambda action, param: self.quit())
@@ -209,6 +219,51 @@ class Application(Gtk.Application):
 
         self.add_window(self.window)
         self.window.show_all()
+
+    def setup_avahi_browser(self):
+        self.avahi_browser = AvahiBrowser(service=self.avahi_service_type)
+        self.avahi_browser.connect('new_service', self.on_new_service)
+        self.avahi_browser.connect('remove_service', self.on_remove_service)
+
+        return False
+
+    def on_new_service(self, browser, name, address, port, txt_dict):
+        published_fpr = txt_dict.get('fingerprint', None)
+
+        self.log.info("Probably discovered something, let's check; %s %s:%i:%s",
+                        name, address, port, published_fpr)
+
+        if self.verify_service(name, address, port):
+            GLib.idle_add(self.add_discovered_service, name, address, port, published_fpr)
+        else:
+            self.log.warn("Client was rejected: %s %s %i",
+                        name, address, port)
+
+    def on_remove_service(self, browser, service_type, name):
+        '''Receives on_remove signal from avahibrowser.py to remove service from list and
+        transfers data to remove_discovered_service'''
+        self.log.info("Received a remove signal, let's check; %s:%s", service_type, name)
+        GLib.idle_add(self.remove_discovered_service, name)
+
+    def verify_service(self, name, address, port):
+        '''A tiny function to return whether the service
+        is indeed something we are interested in'''
+        return True
+
+    def add_discovered_service(self, name, address, port, published_fpr):
+        self.discovered_services += ((name, address, port, published_fpr), )
+        #List needs to be modified when server services are removed.
+        self.log.info("Clients currently in list '%s'", self.discovered_services)
+        return False
+
+    def remove_discovered_service(self, name):
+        '''Removes server-side clients from discovered_services list
+        when the server name with fpr is a match.'''
+        for client in self.discovered_services:
+            if client[0] == name:
+                self.discovered_services.remove(client)
+        self.log.info("Clients currently in list '%s'", self.discovered_services)
+
 
     def update_key_list(self):
         #FIXME do not remove rows, but update data
@@ -252,6 +307,11 @@ class Application(Gtk.Application):
             if self.timeout_id != 0:
                 GLib.source_remove(self.timeout_id)
                 self.timeout_id = 0
+        elif self.last_state == PRESENT_KEY_STATE:
+            # Shutdown key server
+            if self.keyserver:
+                self.log.debug("Keyserver switched off")
+                self.stop_server()
 
         if new_state:
             self.state = new_state
@@ -490,12 +550,32 @@ class Application(Gtk.Application):
         qr_frame.add(QRCodeWidget(qr_data))
         qr_frame.show_all()
 
+        self.log.debug("Keyserver switched on! Serving key with fpr: %s", fpr)
+        # GLib.idle_add(self.setup_server(keydata, fpr))
+        self.setup_server(key, key['fpr'])
+
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
         self.update_back_refresh_button_icon()
 
     def on_row_selected(self, listBoxObject, listBoxRowObject, builder, *args):
         self.log.debug("ListRow selected!Key:\n '{}'\n selected".format(listBoxRowObject.key))
+
+    def setup_server(self, keydata, fingerprint):
+        """
+        Starts the key-server which serves the provided keydata and
+        announces the fingerprint as TXT record using Avahi
+        """
+        self.log.info('Serving now')
+        self.log.debug('About to call %r', Keyserver.ServeKeyThread)
+        self.keyserver = Keyserver.ServeKeyThread(str(keydata), fingerprint)
+        self.log.info('Starting thread %r', self.keyserver)
+        self.keyserver.start()
+        self.log.info('Finished serving')
+        return False
+
+    def stop_server(self):
+        self.keyserver.shutdown()
 
     def on_cancel_download_button_clicked(self, buttonObject, *args):
         self.log.debug("Cancel download button clicked.")
