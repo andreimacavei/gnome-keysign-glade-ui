@@ -552,7 +552,7 @@ class Application(Gtk.Application):
 
         self.log.debug("Keyserver switched on! Serving key with fpr: %s", fpr)
         # GLib.idle_add(self.setup_server(keydata, fpr))
-        self.setup_server(key, key['fpr'])
+        self.setup_server(key, key.fingerprint)
 
         self.stack2.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
