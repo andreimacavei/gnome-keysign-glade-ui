@@ -37,7 +37,7 @@
             <property name="always_show_image">True</property>
             <signal name="clicked" handler="on_back_refresh_button_clicked" swapped="no"/>
             <child>
-              <object class="GtkImage" id="image2">
+              <object class="GtkImage" id="refresh-button-image">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="stock">gtk-refresh</property>
