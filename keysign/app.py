@@ -216,7 +216,7 @@ class Application(Gtk.Application):
 
         self.qrscanner.reader.connect('barcode', self.on_barcode)
 
-        self.back_refresh_button = self.builder.get_object("button1")
+        self.back_refresh_button = self.builder.get_object("back_refresh_button")
         self.error_download_label = self.builder.get_object("error_download_label")
         self.spinner1 = self.builder.get_object("spinner1")
         self.spinner2 = self.builder.get_object("spinner2")
