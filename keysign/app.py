@@ -135,7 +135,7 @@ def ui_file(filename):
 class ListBoxRowWithKey(Gtk.ListBoxRow):
 
     def __init__(self, key):
-        super(Gtk.ListBoxRow, self).__init__()
+        super(ListBoxRowWithKey, self).__init__()
         self.key = key
 
         label = Gtk.Label()
