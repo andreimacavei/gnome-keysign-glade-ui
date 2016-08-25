@@ -146,7 +146,7 @@ class ListBoxRowWithKey(Gtk.ListBoxRow):
 class Application(Gtk.Application):
 
     __gsignals__ = {
-        'valid-fingerprint': (GObject.SIGNAL_RUN_LAST, None,
+        'fingerprint-validated': (GObject.SIGNAL_RUN_LAST, None,
                          # Hm, this is a str for now, but ideally
                          # it'd be the full key object
                          (GObject.TYPE_PYOBJECT,)),
@@ -189,7 +189,7 @@ class Application(Gtk.Application):
         self.builder.connect_signals(self)
         self.window = None
 
-        self.connect('valid-fingerprint', self.on_valid_fingerprint)
+        self.connect('fingerprint-validated', self.on_valid_fingerprint)
         self.connect('sign-key-confirmed', self.on_sign_key_confirmed)
 
         self.state = None
@@ -506,7 +506,7 @@ class Application(Gtk.Application):
 
         if is_valid_fingerprint(cleaned_fpr):
 
-            self.emit('valid-fingerprint', cleaned_fpr)
+            self.emit('fingerprint-validated', cleaned_fpr)
 
     def parse_barcode(self, barcode_string):
         """Parses information contained in a barcode
@@ -558,7 +558,7 @@ class Application(Gtk.Application):
                            "but is %r", parsed, fingerprint)
         else:
             if is_valid_fingerprint(fingerprint):
-                self.emit('valid-fingerprint', fingerprint)
+                self.emit('fingerprint-validated', fingerprint)
 
     def on_row_activated(self, listBoxObject, listBoxRowObject, builder, *args):
         key = listBoxRowObject.key
