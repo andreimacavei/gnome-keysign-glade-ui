@@ -572,8 +572,7 @@ class Application(Gtk.Application):
 
         fpr = format_fingerprint(key.fingerprint)
         keyFingerprintLabel = self.builder.get_object("keyFingerprintLabel")
-        keyFingerprintLabel.set_markup('<span size="15000">' + fpr + '</span>')
-        keyFingerprintLabel.set_selectable(True)
+        keyFingerprintLabel.set_markup(fpr)
 
         qr_frame = self.builder.get_object("qrcode_frame")
         for child in qr_frame.get_children():
