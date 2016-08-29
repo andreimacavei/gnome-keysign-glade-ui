@@ -32,7 +32,7 @@ from threading import Thread
 # works for modules.  However, I want to be able to call this Keyserver.py
 # for testing purposes.
 # from __init__ import __version__
-from network.AvahiPublisher import AvahiPublisher
+from .AvahiPublisher import AvahiPublisher
 
 log = logging.getLogger(__name__)
 

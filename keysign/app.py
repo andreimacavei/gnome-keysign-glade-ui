@@ -26,8 +26,8 @@ logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(
 
 from urlparse import urlparse, parse_qs
 
-from network.AvahiBrowser import AvahiBrowser
-from network import Keyserver
+from .network.AvahiBrowser import AvahiBrowser
+from .network import Keyserver
 
 import gi
 gi.require_version('Gtk', '3.0')

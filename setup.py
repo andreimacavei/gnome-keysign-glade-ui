@@ -46,7 +46,7 @@ if __name__ == '__main__':
         # maintainer_email=maintainers_emails,
         packages = [
             'keysign',
-            'network',
+            'keysign.network',
             ],
         py_modules = [
             'monkeysign.msgfmt',
