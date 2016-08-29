@@ -222,7 +222,7 @@ class Application(Gtk.Application):
         self.spinner2 = self.builder.get_object("spinner2")
         self.succes_fail_signing_label = self.builder.get_object("succes_fail_signing_label")
         # Update the key list with the user's own keys
-        self.listbox = self.builder.get_object('listbox1')
+        self.listbox = self.builder.get_object('keys_listbox')
         keys = gpgmh.get_usable_secret_keys()
         for key in keys:
             self.listbox.add(ListBoxRowWithKey(key))
