@@ -47,6 +47,7 @@ if __name__ == '__main__':
         packages = [
             'keysign',
             'keysign.network',
+            'keysign.widgets',
             ],
         py_modules = [
             'monkeysign.msgfmt',
