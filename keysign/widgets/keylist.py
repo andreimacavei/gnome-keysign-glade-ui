@@ -81,7 +81,7 @@ class KeyListWidget(Gtk.HBox):
         stack.reparent(self)
         #stack._builder = builder
 
-        self.listbox = builder.get_object("listbox1")
+        self.listbox = builder.get_object("keys_listbox")
         self.listbox.connect('row-activated', self.on_row_activated)
         self.listbox.connect('row-selected', self.on_row_selected)
 
