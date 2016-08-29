@@ -52,7 +52,7 @@ class KeyPresentWidget(Gtk.Widget):
     def __new__(cls, *args, **kwargs):
         thisdir = os.path.dirname(os.path.abspath(__file__))
         builder = Gtk.Builder.new_from_file(os.path.join(thisdir, 'send.ui'))
-        stack = builder.get_object('stack2')
+        stack = builder.get_object('send_stack')
         stack.set_visible_child_name("page1")
         # Hrm. That doesn't seem to work, but I don't know why.
         #stack = builder.get_object('box3')
