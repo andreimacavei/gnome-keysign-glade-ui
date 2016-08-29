@@ -202,11 +202,11 @@ class Application(Gtk.Application):
     def do_startup(self):
         Gtk.Application.do_startup(self)
 
-        self.stack = self.builder.get_object('stack1')
-        self.stack2 = self.builder.get_object('stack2')
-        self.stack3 = self.builder.get_object('stack3')
-        self.stack.add_titled(self.stack2, 'stack2', 'Send')
-        self.stack.add_titled(self.stack3, 'stack3', 'Receive')
+        self.stack = self.builder.get_object('send_receive_stack')
+        self.send_stack = self.builder.get_object('send_stack')
+        self.receive_stack = self.builder.get_object('receive_stack')
+        self.stack.add_titled(self.send_stack, 'send_stack', 'Send')
+        self.stack.add_titled(self.receive_stack, 'receive_stack', 'Receive')
         self.stack.show_all()
 
         self.qrscanner = QRScannerWidget()
@@ -352,11 +352,11 @@ class Application(Gtk.Application):
             self.state = new_state
         else:
             visible_top_child = self.stack.get_visible_child()
-            if visible_top_child == self.stack2:
-                page = self.stack2.get_visible_child_name()
+            if visible_top_child == self.send_stack:
+                page = self.send_stack.get_visible_child_name()
                 self.state = SELECT_KEY_STATE if page == 'page0' else PRESENT_KEY_STATE
-            elif visible_top_child == self.stack3:
-                page = self.stack3.get_visible_child_name()
+            elif visible_top_child == self.receive_stack:
+                page = self.receive_stack.get_visible_child_name()
                 if page == 'page0':
                     self.state = ENTER_FPR_STATE
                 elif page == 'page1':
@@ -398,18 +398,18 @@ class Application(Gtk.Application):
             self.update_app_state(SELECT_KEY_STATE)
             self.update_key_list()
         elif state == PRESENT_KEY_STATE:
-            self.stack2.set_visible_child_name('page0')
+            self.send_stack.set_visible_child_name('page0')
             self.update_app_state(SELECT_KEY_STATE)
         elif state == ENTER_FPR_STATE:
             self.update_app_state(ENTER_FPR_STATE)
         elif state == DOWNLOAD_KEY_STATE:
-            self.stack3.set_visible_child_name('page0')
+            self.receive_stack.set_visible_child_name('page0')
             self.update_app_state(ENTER_FPR_STATE)
         elif state == CONFIRM_KEY_STATE:
-            self.stack3.set_visible_child_name('page0')
+            self.receive_stack.set_visible_child_name('page0')
             self.update_app_state(ENTER_FPR_STATE)
         elif state == SIGN_KEY_STATE:
-            self.stack3.set_visible_child_name('page2')
+            self.receive_stack.set_visible_child_name('page2')
             self.update_app_state(CONFIRM_KEY_STATE)
         else:
             self.log.error("Unknown application state!")
@@ -456,7 +456,7 @@ class Application(Gtk.Application):
         self.error_download_label.hide()
         self.spinner1.start()
 
-        self.stack3.set_visible_child_name('page1')
+        self.receive_stack.set_visible_child_name('page1')
         self.update_app_state(DOWNLOAD_KEY_STATE)
         self.update_back_refresh_button_icon()
 
@@ -481,7 +481,7 @@ class Application(Gtk.Application):
         uidsLabel.set_markup(markup)
 
         self.timeout_id = 0
-        self.stack3.set_visible_child_name('page2')
+        self.receive_stack.set_visible_child_name('page2')
         self.update_app_state(CONFIRM_KEY_STATE)
         self.update_back_refresh_button_icon()
 
@@ -497,7 +497,7 @@ class Application(Gtk.Application):
             pass
         dialog.destroy()
 
-        self.stack3.set_visible_child_name('page0')
+        self.receive_stack.set_visible_child_name('page0')
         self.update_app_state(ENTER_FPR_STATE)
         self.update_back_refresh_button_icon()
 
@@ -587,7 +587,7 @@ class Application(Gtk.Application):
         # GLib.idle_add(self.setup_server(keydata, fpr))
         self.setup_server(key, key.fingerprint)
 
-        self.stack2.set_visible_child_name('page1')
+        self.send_stack.set_visible_child_name('page1')
         self.update_app_state(PRESENT_KEY_STATE)
         self.update_back_refresh_button_icon()
 
@@ -625,7 +625,7 @@ class Application(Gtk.Application):
         self.succes_fail_signing_label.hide()
         self.spinner2.start()
 
-        self.stack3.set_visible_child_name('page3')
+        self.receive_stack.set_visible_child_name('page3')
         self.update_app_state(SIGN_KEY_STATE)
         self.update_back_refresh_button_icon()
 

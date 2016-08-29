@@ -7,7 +7,7 @@
     <property name="can_focus">False</property>
     <property name="stock">gtk-apply</property>
   </object>
-  <object class="GtkStack" id="stack3">
+  <object class="GtkStack" id="receive_stack">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="transition_type">slide-left-right</property>
