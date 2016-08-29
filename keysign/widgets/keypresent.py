@@ -42,6 +42,7 @@ from .__init__ import __version__
 
 from . import gpgmh
 from .qr_code import QRImage
+from .app import format_fingerprint
 
 log = logging.getLogger(__name__)
 
@@ -72,7 +73,8 @@ class KeyPresentWidget(Gtk.Widget):
                                         [GLib.markup_escape_text("{}".format(uid))
                                         for uid
                                         in key.uidslist]))
-        self.fingerprint_label.set_markup(key.fingerprint)
+        fmt_fpr = format_fingerprint(key.fingerprint)
+        self.fingerprint_label.set_markup(fmt_fpr)
         self.qrcode_frame.add(QRImage(key.fingerprint))
 
 
