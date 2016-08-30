@@ -33,7 +33,7 @@ if __name__ == '__main__':
     maintainers_emails = ('andrei.macavei89@gmail.com')
 
     data_files = [
-        ('share/keysign/ui', glob.glob("data/*.ui")),
+        ('share/keysign/ui', glob.glob("keysign/widgets/*.ui")),
     ]
 
     setup(
