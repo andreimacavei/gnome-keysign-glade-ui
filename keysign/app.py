@@ -24,7 +24,9 @@ import sys
 import time
 logging.basicConfig(stream=sys.stderr, level=logging.DEBUG, format='%(name)s (%(levelname)s): %(message)s')
 
+
 from urlparse import urlparse, parse_qs
+from datetime import date, datetime
 
 from .network.AvahiBrowser import AvahiBrowser
 from .network import Keyserver
@@ -41,8 +43,9 @@ from gi.repository import (
     Gst
 )
 
-from datetime import date, datetime
-from qrwidgets import QRCodeWidget, QRScannerWidget
+from .barcode_reader import BarcodeReaderGTK
+from .qrwidgets import QRCodeWidget, QRScannerWidget
+
 
 try:
     import keysign.gpgmh as gpgmh
@@ -209,12 +212,16 @@ class Application(Gtk.Application):
         self.stack.add_titled(self.receive_stack, 'receive_stack', 'Receive')
         self.stack.show_all()
 
-        self.qrscanner = QRScannerWidget()
+        # self.qrscanner = QRScannerWidget()
+        reader = BarcodeReaderGTK()
+        reader.set_size_request(150,150)
+        reader.connect('barcode', self.on_barcode)
+
         scan_frame = self.builder.get_object("scan_frame")
-        scan_frame.add(self.qrscanner)
+        scan_frame.add(reader)
         scan_frame.show_all()
 
-        self.qrscanner.reader.connect('barcode', self.on_barcode)
+        # self.qrscanner.reader.connect('barcode', self.on_barcode)
 
         self.back_refresh_button = self.builder.get_object("back_refresh_button")
         self.error_download_label = self.builder.get_object("error_download_label")
