@@ -43,7 +43,7 @@ from gi.repository import (
 
 from datetime import date, datetime
 from qrwidgets import QRCodeWidget, QRScannerWidget
-
+from .widgets.keyfprscan import KeyFprScanWidget
 try:
     import keysign.gpgmh as gpgmh
 except ImportError as e:
@@ -209,12 +209,17 @@ class Application(Gtk.Application):
         self.stack.add_titled(self.receive_stack, 'receive_stack', 'Receive')
         self.stack.show_all()
 
-        self.qrscanner = QRScannerWidget()
-        scan_frame = self.builder.get_object("scan_frame")
-        scan_frame.add(self.qrscanner)
-        scan_frame.show_all()
+        scanwidget = KeyFprScanWidget()
+        scanwidget.show()
 
-        self.qrscanner.reader.connect('barcode', self.on_barcode)
+        stack_page = self.receive_stack.get_child_by_name('page0')
+        # FIXME: we should not remove gui stuff from code...
+        self.receive_stack.remove(stack_page)
+        self.receive_stack.add_named(scanwidget, 'page0')
+        self.receive_stack.set_visible_child(scanwidget)
+
+        scanwidget.connect('barcode', self.on_barcode)
+        scanwidget.connect('changed', self.on_text_changed)
 
         self.back_refresh_button = self.builder.get_object("back_refresh_button")
         self.error_download_label = self.builder.get_object("error_download_label")
@@ -501,7 +506,7 @@ class Application(Gtk.Application):
         self.update_app_state(ENTER_FPR_STATE)
         self.update_back_refresh_button_icon()
 
-    def on_text_changed(self, entryObject, *args):
+    def on_text_changed(self, keyfprscanwidget, entryObject, *args):
         cleaned_fpr = clean_fingerprint(entryObject.get_text())
 
         if is_valid_fingerprint(cleaned_fpr):
