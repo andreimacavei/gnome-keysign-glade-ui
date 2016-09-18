@@ -43,7 +43,7 @@ if  __name__ == "__main__" and __package__ is None:
     #sys.modules["keysign"] = mod
     __package__ = str('keysign')
 
-from .barcode_reader import BarcodeReaderGTK
+from keysign.barcode_reader import BarcodeReaderGTK
 
 # This needs to be called before creating a BarcodeReaderGTK
 Gst.init()

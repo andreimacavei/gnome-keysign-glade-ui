@@ -37,12 +37,12 @@ if  __name__ == "__main__" and __package__ is None:
     #sys.modules["keysign"] = mod
     __package__ = str('keysign')
 
-from .__init__ import __version__
+from keysign.__init__ import __version__
 
 
-from . import gpgmh
-from .qr_code import QRImage
-from .app import format_fingerprint
+from keysign import gpgmh
+from keysign.qr_code import QRImage
+from keysign.app import format_fingerprint
 
 log = logging.getLogger(__name__)
 

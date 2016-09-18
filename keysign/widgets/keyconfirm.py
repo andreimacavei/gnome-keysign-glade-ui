@@ -42,8 +42,8 @@ if  __name__ == "__main__" and __package__ is None:
     __package__ = str('keysign')
 
 
-from .gpgmh import get_usable_keys
-from .app import format_key_header, format_uidslist
+from keysign.gpgmh import get_usable_keys
+from keysign.app import format_key_header, format_uidslist
 
 log = logging.getLogger(__name__)
 
